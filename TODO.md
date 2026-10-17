@@ -64,8 +64,10 @@ first. Each step in its own session, in this order:
    base-first reason reworded. Its suite passed against the unpushed base, 43 of 43. Both were
    pushed on 2026-10-18, base first; the base's run passed without a rerun, having checked out the
    CLI's new `main`, pushed seconds after.
-3. [x] **Unpin the other tools** (D16), both repos, merged 2026-10-18 on `build/unpin-tools` in
-   each, **unpushed**. Settled by trying each option in a generated project:
+3. [x] **Unpin the other tools** (D16), both repos, merged 2026-10-18 from `build/unpin-tools`
+   (`62a0e67` here, `d6bac69` there), **`main` unpushed in both**. The branches were pushed first
+   and passed CI on Ubuntu and macOS in both repos, proving the `$GITHUB_PATH` step; they are
+   deleted from GitHub. Settled by trying each option in a generated project:
    - **Hook revs: local hooks through `uv run --no-project --with <tool>`, no version.** uv
      re-resolves on every run and trusts its cached copy of PyPI's simple page for its
      `max-age=600`, so a release reaches the gate within ten minutes (`-v`: "Found fresh
