@@ -12,7 +12,7 @@ for the conventions no linter covers, and the shared Claude Code skills.
 
 ## Prerequisites
 
-`uv` at or above the template's floor, installed by
+`uv` at its latest, installed by
 [the standalone installer](https://docs.astral.sh/uv/getting-started/installation/), so that
 `uv self update` works; then copier and prek as uv tools. From a clone of this repo, the setup
 helper does all of it:
@@ -22,10 +22,11 @@ sh bootstrap.sh setup           # install or upgrade copier and prek, write copi
 sh bootstrap.sh doctor          # report what is installed and configured; change nothing
 ```
 
-With no `uv` it offers to install the pinned one, and with one below the floor it offers to update
-it (`--yes`, before the command, agrees in advance). A Homebrew or pip `uv` cannot update itself,
-so it stops and says how to move to the standalone install. Every generated project's
-`pyproject.toml` holds the same floor as `required-version`, so uv itself refuses to run below it.
+With no `uv` it offers to install the latest (`--yes`, before the command, agrees in advance), and
+on every run it updates the one it finds with `uv self update`. A Homebrew or pip `uv` cannot
+update itself, so it stops and says how to move to the standalone install. The template pins no
+`uv`: it is tested against the latest, weekly on CI as well as on every push, and a generated
+project's session-start hook says when its `uv` is behind.
 
 `setup` is safe to rerun: it upgrades what it installed before. It writes copier's settings file
 with your `git config` name and email as the default author answers, offering your GitHub noreply
@@ -112,10 +113,8 @@ separately, touching only its own files:
 | The use case | `.copier-answers.yml` | `copier update --trust` |
 
 A project generated from the base alone has only the first. Under a use case, run both, the base
-first: a pin can have a copy in each layer, and the base's are the ones that must not lag. The
-use case's `required-version` is the `uv` floor, while the base's `uv-pre-commit` rev is the `uv`
-that the commit's `uv-lock` hook runs, so raising the floor first refuses that hook. Each update
-needs a clean tree, so commit between them:
+first: the use case is written against the base, so a use-case change that needs a base change
+then never lands ahead of it. Each update needs a clean tree, so commit between them:
 
 ```bash
 git status --short                    # must be clean; copier refuses otherwise
@@ -244,7 +243,7 @@ See [CLAUDE.md](CLAUDE.md) for why, and for the branching and merge rules.
 - **`tests/test_template.py`** — generates the base alone and runs its gate. The only local check
   on the template; CI also runs the CLI repo's suite against it.
 - **`bootstrap.sh`, `bootstrap.py`** — the setup helper: a POSIX `sh` shim that makes sure of
-  `uv` at the pin (`UV_VERSION`), then a uv script with the commands. Tested in `tests/`.
+  a standalone `uv` and updates it, then a uv script with the commands. Tested in `tests/`.
 - **`.pre-commit-config.yaml`** — the gate for this repository.
 - **`TODO.md`** — outstanding work.
 

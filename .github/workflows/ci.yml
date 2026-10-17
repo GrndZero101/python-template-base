@@ -13,7 +13,8 @@
 #   breaks the CLI layer shows up.
 #
 # The repo is public, so GitHub-hosted runners cost nothing on any OS. Actions are pinned by
-# commit SHA with the release in a comment; a tag can be moved, a SHA cannot.
+# commit SHA with the release in a comment; a tag can be moved, a SHA cannot. The toolchain is not
+# pinned: setup-uv installs the latest uv, as bootstrap.sh does on a user's machine.
 
 name: CI
 
@@ -27,6 +28,9 @@ name: CI
 # generated project's gate checks it. A push touching only TODO.md, README.md or CLAUDE.md runs
 # nothing; the commit hooks have already checked that markdown locally. Run the workflow by hand
 # (workflow_dispatch) to force a run.
+#
+# And weekly, with no push: nothing pins uv, so a uv release that breaks the template shows within
+# a week rather than on the next push, whenever that is.
 on:
   push:
     paths:
@@ -39,6 +43,8 @@ on:
       - "bootstrap.py"
       - ".pre-commit-config.yaml"
       - ".github/workflows/**"
+  schedule:
+    - cron: "17 6 * * 1" # Mondays, 06:17 UTC: off the hour, when scheduled runs bunch up
   workflow_dispatch:
     inputs:
       windows:
@@ -70,9 +76,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-        with:
-          # The floor bootstrap.sh pins, so CI runs what it enforces. A test keeps them in step.
-          version: "0.12.24"
       - run: uv sync --locked
       # no-commit-to-branch refuses work on main, which is what a push to main checks out.
       - run: uv run prek run --all-files --show-diff-on-failure --skip no-commit-to-branch --skip generation-tests
@@ -105,7 +108,6 @@ jobs:
       # project's .python-version and quietly turn the 3.12 floor test into a 3.14 one.
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          version: "0.12.24"
           cache-python: true
       - run: uv sync --locked
       # prek and copier come from the dev group, so the suite finds them on the venv's PATH.

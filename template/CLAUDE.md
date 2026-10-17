@@ -119,7 +119,7 @@ which rest on your own discipline.
 | `main` receives merge commits, never fast-forwards | `tools/finish_branch.py`, when the branch is finished with it |
 | Merge subject describes the work, never `Merge branch '...'` | `tools/finish_branch.py`, when the branch is finished with it — by hand, review only: `Merge` is exempt from the message check |
 | Clean tree before starting work | *convention — `SessionStart` reports it, does not block* |
-| `prek` installed and all three git shims present | `tools/session_doctor.py` via `SessionStart` — reports, does not block |
+| `prek` installed and all three git shims present; `uv` at its latest | `tools/session_doctor.py` via `SessionStart` — reports, does not block |
 | Commit summary ≤72 chars, imperative | *convention — review only* |
 | One logical change per commit | *convention — review only* |
 | Name intermediates | *convention — review only* |

@@ -33,20 +33,42 @@ first. Each step in its own session, in this order:
    failure only by generating at a version below the pin and updating to it. That needs a
    hard-coded earlier version with a `uv-pre-commit` tag, one more copy for every pin move. Moot
    after step 2, which leaves no pin to move.
-2. **Unpin uv** (D16), both repos, base first. Supersedes the capability floor planned here
-   earlier the same day, and the 0.12.24 pin. The shim installs with the unversioned installer
-   (`astral.sh/uv/install.sh`, consent kept, since it installs from nothing) and runs plain `uv
-   self update` on every run, with no prompt, its failure still `not_standalone`; `UV_VERSION`,
-   `older_than` and the version check go. `required-version` goes from both root pyprojects and
-   both `pyproject.toml.jinja`. setup-uv drops `version`, so CI runs the latest. The
-   `uv-pre-commit` hook becomes a local `uv lock` hook (`language: system`), so the gate runs the
-   installed uv and holds no rev. `pins`, `PinSite`, `resolve_target`, `uv_reaches`,
-   `test_every_copy_of_the_uv_pin_agrees*` in both repos and the paragraph on order in the CLI's
-   `template/README.md.jinja` go with them; the shim's stub-`uv` tests shrink to missing, not
-   self-updatable and updatable. `session_doctor` reports a uv behind the latest and names `uv self
-   update`, reporting only: measure what the check costs at session start, and stay quiet offline.
-   A weekly scheduled CI run in both repos, so a uv release that breaks things shows within a week
-   with no push. The base-first update order stays: it costs nothing.
+2. **Unpin uv** (D16), both repos, base first. **The base half is merged** (2026-10-18, branch
+   `build/unpin-uv`), not yet pushed: pushing it alone fails the base's CI on the CLI's
+   `test_every_copy_of_the_uv_pin_agrees_with_the_base`, which reads the base's `UV_VERSION`. What
+   landed:
+   - The shim installs with the unversioned installer (consent kept) and runs `uv self update >&2`
+     on every run, unasked; a failure is still `not_standalone`. `UV_VERSION`, `older_than` and
+     `awk` are gone. The stub-`uv` tests are now: updated then hands off, the helper's exit code,
+     missing without and with `--yes` (curl and wget), and not self-updatable.
+   - `pins` and everything only it used (`PinSite`, the site tables, `read_pin`, `resolve_target`,
+     `uv_reaches`, `move_uv`, `Probe.fetch`, `UV_RELEASES`, `CLI_REPO_NAME`, `main`'s `root`).
+   - `required-version` out of the root `pyproject.toml` and `template/pyproject.toml.jinja`;
+     setup-uv's `version` out of both CI steps; a weekly run, Mondays 06:17 UTC.
+   - The template's `uv-pre-commit` hook is a local `uv-lock` hook: `uv lock`, `language: system`,
+     upstream's `files:` (`^(uv\.lock|pyproject\.toml|uv\.toml)$`) and `pass_filenames: false`.
+   - `session_doctor` adds "Worth doing: uv X is behind the latest release, Y. Fix: uv self update"
+     from `uv self version --short` and PyPI's JSON, with a 2-second timeout. **Measured**: the hook
+     took 0.03 s before and 0.53 s after, online; refused offline it adds nothing; a black-holed
+     network costs the full 2 s. Quiet when offline, when PyPI answers oddly, and when either
+     version is not plain numbers (a dev build). One `except` per error type, not a tuple: ruff at
+     py314 rewrites a tuple to the bare form, a syntax error at the 3.12 floor.
+   - The READMEs' and `bootstrap.py`'s reason for base-first is now that the use case is written
+     against the base, not the pin.
+   - Checked: the root gate, and the CLI suite against this base with `BASE_TEMPLATE_DIR` (43
+     passed, the agreement test deselected); `sh bootstrap.sh doctor` for real.
+
+   **The CLI half, next, in a session started in `../python-template-cli-typer`:**
+   - `pyproject.toml` and `template/pyproject.toml.jinja`: delete `required-version` and its
+     comment, and `[tool.uv]` with them if nothing else is in it.
+   - `.github/workflows/ci.yml`: delete setup-uv's `version` and its comment; add the base's
+     `schedule` (a different minute, say `47 6 * * 1`) and its comment.
+   - `tests/test_template.py`: delete `test_every_copy_of_the_uv_pin_agrees_with_the_base`, and any
+     import only it used.
+   - `README.md` (about line 90) and `template/README.md.jinja` (about line 158): drop the pin as
+     the reason for base-first and say what the base's README now says; keep the order.
+   - Then push the base first, the CLI straight after, and `gh run rerun <id> --failed` on the
+     base's run, which will have checked out the CLI's old `main`.
 3. **Unpin the other tools** (D16): prek and copier, then the gate's hook revs. `setup` and
    `update` run `uv tool upgrade prek copier` every time; prek and copier leave the root dev group
    for uv tools, as CI already installs them for the end-to-end test, and the tests find them on
@@ -62,7 +84,8 @@ first. Each step in its own session, in this order:
    `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
    new question. Check `git diff main` on both answers files before finishing, then push.
 
-Until step 2 lands the pin is 0.12.24 in both repos; uv's latest is 0.13.1.
+Until the CLI half of step 2 lands, the CLI repo still holds the 0.12.24 floor; uv's latest is
+0.13.1.
 
 Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
 so that nothing under `template/` moves twice.
@@ -199,7 +222,8 @@ on. Read-only work — a review, an audit — is still a session started where t
 - `template/tools/`, eleven modules: the hooks `branch_guard` (`PreToolUse`: no edits on `main`),
   `gate` (`PostToolUse`: the gate on every Edit/Write, concise, pausing on conflict markers),
   `stop_gate` (`Stop`: changed files and the tests, measured from the merge-base, blocking once)
-  and `session_doctor` (`SessionStart`: status, plus a missing `prek` or git shim);
+  and `session_doctor` (`SessionStart`: status, plus a missing `prek` or git shim, and a uv
+  behind its latest release, as advice);
   `check_conventions` and `convention_rules`, ten rules no linter covers (`nested-def`,
   `nested-class`, `complex-comprehension`, `raise-from-none`, `dynamic-attribute`,
   `missing-main-guard`, `raw-httpx-client`, `patched-httpx`, `silent-exit`, `typer-default`);
@@ -667,7 +691,7 @@ linted by the root gate.
 Decided 2026-10-16: the gate is hard, `uv` is pinned rather than chased to the latest release,
 the shim is POSIX `sh` (not zsh), and step 9's skill is written first so the helper is built by
 following it. **The pin is superseded by D16** (2026-10-17): the pin, the shim's version check and
-`pins` below describe what was built, and "Next up" steps 2–3 remove them.
+`pins` below describe what was built. "Next up" step 2 removed them from the base on 2026-10-18.
 
 **The `uv` pin.** One version, the floor every part of the system needs, kept in step everywhere it
 is written down, with a test asserting they agree:
