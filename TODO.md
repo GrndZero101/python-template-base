@@ -13,6 +13,12 @@ from `archive/cli-stdlib`) and the rest of phase 8. Ask before starting either.
 **Shipped CI is closed** (2026-10-18): the canary answers `ci: github` and its first run on GitHub
 passed. Phase 8's first item has the detail.
 
+**Watch: `ubuntu-latest` moves to Ubuntu 26 from 2026-10-19** (GitHub's annotation on the canary's
+run; actions/runner-images#14748). That is a Monday, so the weekly 06:17 UTC runs in both template
+repos are among the first on the new image. A red Linux run then, with macOS green and no code
+change, points at the image, not the template: read its log before touching code. Drop this note
+once a run on Ubuntu 26 has passed.
+
 **The setup helper is closed** (2026-10-18): step 4 below, the canary's update through it, is
 done and pushed. The history below stays as the record of how the helper got here.
 
@@ -1014,12 +1020,10 @@ Done: CI for this repo (2026-10-15), under "Done" above.
   repo pays for `github`**: a Free account has 2,000 minutes a month, and Windows and macOS burn
   the quota faster, macOS at about ten times Linux. Ship Linux only, with Windows and macOS
   commented in; run on pushes to `main` and on pull requests, not on every branch push.
-  - **The CLI layer asks `ci` too.** Its task applies the base with `--defaults`, so a question
-    asked only by the base is never put to a CLI user, who would always get `none`. Follow
-    `license`: the CLI's `copier.yml` asks it, and the base's default reads
-    `_external_data.use_case.ci`. The CLI's README covers the question, as it does `license`.
-  - **Ownership.** The workflow is base-owned: add it to this repo's `CLAUDE.md` list, and check
-    the CLI suite's one-owner test still passes with it rendered.
+  - **The CLI layer asks `ci` too**, because its task applies the base with `--defaults`: a
+    question only the base asked would never reach a CLI user, who would always get `none`.
+  - **Ownership.** The workflow is base-owned and in this repo's `CLAUDE.md` list; the CLI suite's
+    one-owner test passes with it rendered.
   - **The canary answers `github`** (2026-10-18, `fcea7e4` there, pushed). A new question under
     `--defaults` takes its default, `none`, so the helper was run as
     `sh <base>/bootstrap.sh update <canary> -- --defaults -d ci=github`, where everything after
@@ -1030,9 +1034,8 @@ Done: CI for this repo (2026-10-15), under "Done" above.
     `no-commit-to-branch` skipped), then pytest, 282 passed and 1 skipped. The author kept the
     canary Linux only, though it is public and macOS and Windows would run free, so the file stays
     exactly as shipped and later updates merge into it cleanly. Copier printed "Make sure Git >=
-    2.24 is installed" for both layers, wrongly: git here is 2.56. **Watch:** GitHub's
-    annotation says `ubuntu-latest` moves to Ubuntu 26 from 2026-10-19, so the next runs (this
-    repo's and the CLI's weekly Monday runs included) are the first on the new image.
+    2.24 is installed" for both layers, wrongly: git here is 2.56. The run's Ubuntu 26 annotation
+    is under "Next up".
 - [ ] **Pin automation.** Mostly superseded by D16: step 3 left no hook rev to move. What is left
   is the dependency floors, which drifted 10–20 releases in two months and live in each use case.
   A scheduled workflow or Renovate, gated by the generation suite.
