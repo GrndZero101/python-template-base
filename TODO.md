@@ -31,30 +31,38 @@ first. Each step in its own session, in this order:
    at every step, the invariant the base's agreement test already asserts. **Not done: moving the
    pin in the end-to-end test's snapshots.** CI's uv *is* the pin, so the test could reproduce the
    failure only by generating at a version below the pin and updating to it. That needs a
-   hard-coded earlier version with a `uv-pre-commit` tag, one more copy for every pin move, and
-   step 2 is about to lower the pin to a floor not yet known. Weigh it again after step 2, if at
-   all: the order is now asserted by both repos' tests.
-2. **Lower the floor to a capability floor.** Decided 2026-10-17, replacing "stays static" below:
-   the floor is the oldest uv that has what the template uses, raised only when something needs a
-   newer one, not the uv the tests last ran on. A floor that tracks releases makes every user
-   update uv for nothing. Find it from uv's changelog and check it by running at it: `uv run
-   --script` with `[tool.uv] exclude-newer`, `uv self version --short`, `uv self update --dry-run`
-   (0.7.3), `required-version` itself, whatever the `uv_build` backend and the generated gate
-   need. Then `pins --update uv --to <v>`, once `resolve_target` stops refusing a version below
-   the pin ("a floor only rises"): a deliberate `--to` may lower it, the latest may not.
-   `uv-pre-commit`'s rev is an `at_least` site, so it stays where it is. Not dropped: the shim
-   needs a minimum anyway, and `required-version` turns a too-old uv into "run `uv self update`"
-   instead of an obscure failure. CI's setup-uv stays at the floor, so CI tests what is promised.
-3. **The canary's update, through the helper**, which closes the helper: from the canary,
+   hard-coded earlier version with a `uv-pre-commit` tag, one more copy for every pin move. Moot
+   after step 2, which leaves no pin to move.
+2. **Unpin uv** (D16), both repos, base first. Supersedes the capability floor planned here
+   earlier the same day, and the 0.12.24 pin. The shim installs with the unversioned installer
+   (`astral.sh/uv/install.sh`, consent kept, since it installs from nothing) and runs plain `uv
+   self update` on every run, with no prompt, its failure still `not_standalone`; `UV_VERSION`,
+   `older_than` and the version check go. `required-version` goes from both root pyprojects and
+   both `pyproject.toml.jinja`. setup-uv drops `version`, so CI runs the latest. The
+   `uv-pre-commit` hook becomes a local `uv lock` hook (`language: system`), so the gate runs the
+   installed uv and holds no rev. `pins`, `PinSite`, `resolve_target`, `uv_reaches`,
+   `test_every_copy_of_the_uv_pin_agrees*` in both repos and the paragraph on order in the CLI's
+   `template/README.md.jinja` go with them; the shim's stub-`uv` tests shrink to missing, not
+   self-updatable and updatable. `session_doctor` reports a uv behind the latest and names `uv self
+   update`, reporting only: measure what the check costs at session start, and stay quiet offline.
+   A weekly scheduled CI run in both repos, so a uv release that breaks things shows within a week
+   with no push. The base-first update order stays: it costs nothing.
+3. **Unpin the other tools** (D16): prek and copier, then the gate's hook revs. `setup` and
+   `update` run `uv tool upgrade prek copier` every time; prek and copier leave the root dev group
+   for uv tools, as CI already installs them for the end-to-end test, and the tests find them on
+   PATH. The hook revs (ruff, rumdl, the hygiene hooks) and ty's `ty==0.0.84` cannot float in a
+   prek config: a rev is a tag. Open, for this step to settle by trying each: local hooks through
+   `uv run --with <tool>` with no version (check whether uv re-resolves or reuses a cached env), or
+   `prek autoupdate` run by `update` and by the weekly CI. A project's autoupdate edits a
+   base-owned file, so the first conflicts on the next `copier update`. Also decide here whether
+   the policy reaches the dev group's `uv.lock` (`uv lock --upgrade` weekly) and the uv-script
+   skill's `exclude-newer`, which pins a script's dependencies by date. Actions stay pinned by SHA:
+   that is supply-chain hygiene, not the toolchain.
+4. **The canary's update, through the helper**, which closes the helper: from the canary,
    `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
-   new question. Generated projects now receive `required-version`; check `git diff main` on
-   both answers files before finishing, then push.
+   new question. Check `git diff main` on both answers files before finishing, then push.
 
-The pin is 0.12.24, moved by `pins --update uv --to 0.12.24` on 2026-10-17 in both repos; uv's
-latest is 0.13.1. A pin, not a range: `required-version` can take one, but a `<0.13` cap would
-refuse a newer uv, and the shim's installer, `uv self update` and `uv-pre-commit`'s `rev` take
-exact versions, so only setup-uv could float, at the cost of reproducible CI. Step 2 changes what
-it is set to, not that it is a floor.
+Until step 2 lands the pin is 0.12.24 in both repos; uv's latest is 0.13.1.
 
 Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
 so that nothing under `template/` moves twice.
@@ -323,6 +331,14 @@ Decided:
   stop gates would fail a legacy codebase at the first save too. No machinery now: brownfield has
   not reached `main`. When it does: a `--changed-only` flag on `finish_branch.py` reusing
   `stop_gate.changed_files`, and `exclude` lists in the ty and rumdl config the adopter can edit.
+- **D16** (2026-10-17) — **the template never pins its toolchain.** uv, prek, copier and the
+  gate's tools run at their latest, on users' machines and on CI alike, replacing the 2026-10-16
+  pin-and-floor design under "Setup helper". There are no users to protect from an upgrade, and
+  the pin's copies across two repos and two layers caused the canary's failed update rather than
+  preventing one. The cost is accepted: CI loses reproducibility, and an upstream release will
+  sometimes break a run, which is fixed forward. The weekly CI run surfaces that. A downstream
+  project that wants a frozen toolchain gets a `seal` command later (see "Later"); the template
+  never seals itself.
 
 ## Done: phases 1–9, and the lessons that still apply
 
@@ -650,7 +666,8 @@ linted by the root gate.
 
 Decided 2026-10-16: the gate is hard, `uv` is pinned rather than chased to the latest release,
 the shim is POSIX `sh` (not zsh), and step 9's skill is written first so the helper is built by
-following it.
+following it. **The pin is superseded by D16** (2026-10-17): the pin, the shim's version check and
+`pins` below describe what was built, and "Next up" steps 2–3 remove them.
 
 **The `uv` pin.** One version, the floor every part of the system needs, kept in step everywhere it
 is written down, with a test asserting they agree:
@@ -865,9 +882,9 @@ Done: CI for this repo (2026-10-15), under "Done" above.
   account has 2,000 minutes a month, and Windows and macOS burn the quota faster, macOS at about
   ten times Linux. Ship Linux only, with Windows and macOS commented in; run on pushes to `main`
   and on pull requests, not on every branch push.
-- [ ] **Pin automation.** Nothing bumps the hook pins or the dependency floors, and they drifted
-  10–20 releases in two months. After the split the hook pins live in the base's config and the
-  floors in each use case. A scheduled `prek update` workflow, or Renovate, gated by the
+- [ ] **Pin automation.** Mostly superseded by D16: the toolchain is unpinned in "Next up" step 3,
+  which settles the hook revs. What is left is the dependency floors, which drifted 10–20 releases
+  in two months and live in each use case. A scheduled workflow or Renovate, gated by the
   generation suite. `prek update` cannot read `template/.pre-commit-config.yaml.jinja`; phase 4 ran
   it in a generated project and copied the revisions back, which a workflow can do too.
 - [ ] **Tagging** (D5), one tag series per repo. **Once any tag exists, `copier update` moves to
@@ -882,6 +899,11 @@ Done: CI for this repo (2026-10-15), under "Done" above.
 
 ## Later
 
+- **A `seal` command for downstream projects** (D16). A project that has settled, and wants its
+  toolchain frozen, runs one command that records what it runs now: an exact `required-version`,
+  exact `uv tool` versions for prek and copier, and the hook revs as they stand. It runs in a
+  generated project, never in the templates. Open: where it lives (`bootstrap.py`, or `tools/` in
+  the base), and how a sealed project's `copier update` keeps the seal when the base's files move.
 - **The Textual console**, attached through `TEXTUAL=devtools,debug`, is unverified by hand. The
   mechanism is read from `textual_dev/cli.py`; it needs two real terminals to see.
 - **DebugMCP on Windows native.** The agent-session half is done in WSL. Still unverified, and
