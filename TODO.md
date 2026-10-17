@@ -6,6 +6,13 @@ new session would otherwise relearn. The detail of finished work is in `git log`
 
 ## Next up
 
+**The setup helper is closed** (2026-10-18): step 4 below, the canary's update through it, is
+done and pushed. **The next step is not chosen yet.** The candidates already in this file are
+phase 10's "Later in the phase" (`python-canary-base` to exercise the uv-script skill, and
+`python-template-cli-stdlib` seeded from `archive/cli-stdlib`) and phase 8, which waits behind
+phase 10. Ask the author before starting either. The history below stays as the record of how the
+helper got here.
+
 **The setup helper's next pieces**, under "Setup helper (after step 9)". The shim, the `uv` pin
 in this repo and `doctor` were merged on 2026-10-17, and the pin in the CLI repo the same day
 (`db884f7` there: both pyprojects, both setup-uv steps, and
@@ -65,7 +72,7 @@ first. Each step in its own session, in this order:
    pushed on 2026-10-18, base first; the base's run passed without a rerun, having checked out the
    CLI's new `main`, pushed seconds after.
 3. [x] **Unpin the other tools** (D16), both repos, merged 2026-10-18 from `build/unpin-tools`
-   (`62a0e67` here, `d6bac69` there), **`main` unpushed in both**. The branches were pushed first
+   (`62a0e67` here, `d6bac69` there), `main` pushed in both the same day. The branches were pushed first
    and passed CI on Ubuntu and macOS in both repos, proving the `$GITHUB_PATH` step; they are
    deleted from GitHub. Settled by trying each option in a generated project:
    - **Hook revs: local hooks through `uv run --no-project --with <tool>`, no version.** uv
@@ -110,12 +117,21 @@ first. Each step in its own session, in this order:
      before any conftest. Verified: the suite under `GIT_INDEX_FILE=.git/index`, then a clean fsck.
    - Checked: the base's whole gate (generation tests included) and the CLI's gate and suite
      against this base, 43 of 43. The CLI repo had **no git shims installed**; `prek install` with
-     all three fixed it locally. **Left: push the base first, the CLI straight after**, then watch
-     the base's run; rerun it with `gh run rerun <id> --failed` if it checked out the CLI's old
-     `main`. The base half alone would pass, since it only stops relying on the CLI's dev group.
-4. **The canary's update, through the helper**, which closes the helper: from the canary,
-   `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
-   new question. Check `git diff main` on both answers files before finishing, then push.
+     all three fixed it locally. Pushed on 2026-10-18, the base (`2cab442`) and the CLI straight
+     after: the base's run passed with no rerun, both generation jobs having checked out the CLI's
+     new `main`, and the CLI's run passed too.
+4. [x] **The canary's update, through the helper**, which closes the helper (2026-10-18, from a
+   session started in the canary). Run in two passes, because `--finish` merges as soon as the
+   last layer commits and leaves no moment to review: first
+   `sh ../python-template-base/bootstrap.sh update .` in a real terminal, since copier re-asks
+   every question with the recorded answers as defaults and the agent's shell has no TTY. It
+   committed both layers on `chore/template-update`, base first: `0bd228a -> 2cab442`, then
+   `cf14b42 -> d6bac69`. `git diff main` on both answers files showed `_commit` alone moving, so
+   copier answered nothing on its own; the CLI layer's `completion_env_var` is `when: false` and is
+   never recorded. Then the same command with `--finish`: both layers `already at`, and
+   `finish_branch.py` merged as `afe247a`, pushed. The canary now has no `required-version` and no
+   hook `rev`. The base layer's run warns `MissingFileWarning ... .copier-answers.yml` from
+   copier's `_user_data.py`, harmlessly: its own answers are in `.copier-answers.base.yml`.
 
 Neither repo pins its toolchain now (after step 3's push): uv, prek, copier and every hook run at
 their latest (uv 0.13.1, prek 0.5.5, copier 9.19.1, ruff 0.17.1, ty 0.0.89, rumdl 0.3.0 on
@@ -155,11 +171,11 @@ The state to expect:
   out the CLI's `main` before the CLI half is there. Push the CLI half straight after, then
   `gh run rerun <id> --failed` the base's run (2026-10-16, the blank `author_email`).
 - Nothing relies on GitHub's redirect from an old name. The canary is
-  `GrndZero101/python-canary-cli-typer`, public since 2026-10-15, at `6615e62` (step 9's update,
-  pushed 2026-10-17). Its history was rewritten on 2026-10-15 (step 8), so canary hashes from
-  before that no longer exist anywhere. `.copier-answers.yml` names
-  `gh:GrndZero101/python-template-cli-typer` at `cf14b42`, and `.copier-answers.base.yml` names
-  `gh:GrndZero101/python-template-base` at `0bd228a`. Its package
+  `GrndZero101/python-canary-cli-typer`, public since 2026-10-15, at `afe247a` (the helper's
+  update, "Next up" step 4, pushed 2026-10-18). Its history was rewritten on 2026-10-15 (step 8),
+  so canary hashes from before that no longer exist anywhere. `.copier-answers.yml` names
+  `gh:GrndZero101/python-template-cli-typer` at `d6bac69`, and `.copier-answers.base.yml` names
+  `gh:GrndZero101/python-template-base` at `2cab442`. Its package
   is `python_canary_cli_typer`; its script is still `tdf-cli`. The old `template-dogfood` memory
   directory and `~/.claude.json` entries are gone.
 - Renaming the directory left the `.venv` pointing at the old path (`Failed to spawn: pytest`):
