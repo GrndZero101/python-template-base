@@ -33,9 +33,9 @@ first. Each step in its own session, in this order:
    failure only by generating at a version below the pin and updating to it. That needs a
    hard-coded earlier version with a `uv-pre-commit` tag, one more copy for every pin move. Moot
    after step 2, which leaves no pin to move.
-2. **Unpin uv** (D16), both repos, base first. **The base half is merged** (2026-10-18, branch
-   `build/unpin-uv`), not yet pushed: pushing it alone fails the base's CI on the CLI's
-   `test_every_copy_of_the_uv_pin_agrees_with_the_base`, which reads the base's `UV_VERSION`. What
+2. [x] **Unpin uv** (D16), both repos, base first. **The base half is merged** (2026-10-18,
+   branch `build/unpin-uv`). Pushing it alone would fail the base's CI on the CLI's
+   `test_every_copy_of_the_uv_pin_agrees_with_the_base`, which read the base's `UV_VERSION`. What
    landed:
    - The shim installs with the unversioned installer (consent kept) and runs `uv self update >&2`
      on every run, unasked; a failure is still `not_standalone`. `UV_VERSION`, `older_than` and
@@ -58,17 +58,12 @@ first. Each step in its own session, in this order:
    - Checked: the root gate, and the CLI suite against this base with `BASE_TEMPLATE_DIR` (43
      passed, the agreement test deselected); `sh bootstrap.sh doctor` for real.
 
-   **The CLI half, next, in a session started in `../python-template-cli-typer`:**
-   - `pyproject.toml` and `template/pyproject.toml.jinja`: delete `required-version` and its
-     comment, and `[tool.uv]` with them if nothing else is in it.
-   - `.github/workflows/ci.yml`: delete setup-uv's `version` and its comment; add the base's
-     `schedule` (a different minute, say `47 6 * * 1`) and its comment.
-   - `tests/test_template.py`: delete `test_every_copy_of_the_uv_pin_agrees_with_the_base`, and any
-     import only it used.
-   - `README.md` (about line 90) and `template/README.md.jinja` (about line 158): drop the pin as
-     the reason for base-first and say what the base's README now says; keep the order.
-   - Then push the base first, the CLI straight after, and `gh run rerun <id> --failed` on the
-     base's run, which will have checked out the CLI's old `main`.
+   **The CLI half is merged too** (2026-10-18, `18a8b3b` there): `required-version` out of both
+   pyprojects (the root keeps `[tool.uv]` for `package = false`), setup-uv's `version` out of both
+   steps, a weekly run at 06:47 UTC on Mondays, the agreement test deleted, and both READMEs'
+   base-first reason reworded. Its suite passed against the unpushed base, 43 of 43. **Left: push
+   the base first, the CLI straight after, then `gh run rerun <id> --failed` on the base's run**,
+   which will have checked out the CLI's old `main`.
 3. **Unpin the other tools** (D16): prek and copier, then the gate's hook revs. `setup` and
    `update` run `uv tool upgrade prek copier` every time; prek and copier leave the root dev group
    for uv tools, as CI already installs them for the end-to-end test, and the tests find them on
@@ -84,8 +79,7 @@ first. Each step in its own session, in this order:
    `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
    new question. Check `git diff main` on both answers files before finishing, then push.
 
-Until the CLI half of step 2 lands, the CLI repo still holds the 0.12.24 floor; uv's latest is
-0.13.1.
+Neither repo pins uv now; both run the latest (0.13.1 on 2026-10-18).
 
 Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
 so that nothing under `template/` moves twice.
