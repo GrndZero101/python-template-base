@@ -6,11 +6,16 @@ new session would otherwise relearn. The detail of finished work is in `git log`
 
 ## Next up
 
-**Next: CI shipped in generated projects**, phase 8's first item, behind the `ci` question (D17,
-`none` or `github`). Chosen by the author on 2026-10-18, ahead of the rest of phase 10, as the
-last thing before the template is used for real work. One session in both repos, started here with
-`--add-dir ../python-template-cli-typer`, because the CLI layer must ask the question too (see
-the item). Both repos start clean on `main`, pushed. That step ends at a checkpoint.
+**Next: update the canary to answer `ci: github`**, the last part of phase 8's first item, in a
+session started **in the canary** (`~/projects/github/GrndZero101/python-canary-cli-typer`), after
+both template repos' `feat/shipped-ci` merges are pushed. The template side is done (2026-10-18,
+both repos); see the item. Run the helper's `update` with the answer for both layers:
+`uv run <base>/bootstrap.py update -- --defaults -d ci=github` (everything after `--` reaches each
+layer's `copier update`; check the exact invocation in the canary's README first). Then check that
+both answers files record `ci: github`, that `.github/workflows/ci.yml` arrived, and, once pushed,
+that the workflow's first real run is green on GitHub — nothing here has run it on GitHub yet. The
+canary is public, so its macOS and Windows lines could be uncommented at no cost: ask the author.
+That step ends at a checkpoint.
 
 After it, the candidates are phase 10's "Later in the phase" (`python-canary-base` to exercise the
 uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`) and the rest
@@ -1001,8 +1006,17 @@ end-to-end in the CLI repo's suite, which already has projects to update.
 
 Done: CI for this repo (2026-10-15), under "Done" above.
 
-- [ ] **CI shipped in generated projects**, behind the `ci` question (D17): `prek run --all-files`
+- [x] **CI shipped in generated projects**, behind the `ci` question (D17): `prek run --all-files`
   and `uv run pytest`, so a generated tool is checked away from its author's machine too.
+  **Done 2026-10-18, both repos, bar the canary** (see "Next up"). What landed: the base's
+  `template/{% if ci == 'github' %}.github{% endif %}/workflows/ci.yml`, literal (its `${{ }}`
+  would read as Jinja), Linux only with macOS and Windows commented in, on pushes to `main`, pull
+  requests and by hand; actions pinned by the same SHAs as the repos' own CI, which nothing keeps in
+  step. `ci` asked by both layers, the base's default reading `_external_data.use_case.ci`. Tests:
+  the base renders `github` and runs the gate over it, and `none` renders no `.github`; the CLI
+  suite checks the answer reaches the base, the default ships nothing, its main gate test generates
+  with `github`, and `CLASHING_SETTINGS` names `ci`. **Verified by hand**: an update to `ci=none`
+  deletes the workflow, and actionlint passes it. Both READMEs and the generated README cover it.
   Base-owned, so it waits only so that nothing under `template/` moves twice. The generation
   suite renders both choices and checks that `none` renders no workflow. **A consumer's private
   repo pays for `github`**: a Free account has 2,000 minutes a month, and Windows and macOS burn
