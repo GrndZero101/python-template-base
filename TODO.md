@@ -6,20 +6,12 @@ new session would otherwise relearn. The detail of finished work is in `git log`
 
 ## Next up
 
-**Next: update the canary to answer `ci: github`**, the last part of phase 8's first item, in a
-session started **in the canary** (`~/projects/github/GrndZero101/python-canary-cli-typer`), after
-both template repos' `feat/shipped-ci` merges are pushed. The template side is done (2026-10-18,
-both repos); see the item. Run the helper's `update` with the answer for both layers:
-`uv run <base>/bootstrap.py update -- --defaults -d ci=github` (everything after `--` reaches each
-layer's `copier update`; check the exact invocation in the canary's README first). Then check that
-both answers files record `ci: github`, that `.github/workflows/ci.yml` arrived, and, once pushed,
-that the workflow's first real run is green on GitHub — nothing here has run it on GitHub yet. The
-canary is public, so its macOS and Windows lines could be uncommented at no cost: ask the author.
-That step ends at a checkpoint.
+**Next: ask the author what comes next.** The candidates are phase 10's "Later in the phase"
+(`python-canary-base` to exercise the uv-script skill, and `python-template-cli-stdlib` seeded
+from `archive/cli-stdlib`) and the rest of phase 8. Ask before starting either.
 
-After it, the candidates are phase 10's "Later in the phase" (`python-canary-base` to exercise the
-uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`) and the rest
-of phase 8. Ask the author before starting either.
+**Shipped CI is closed** (2026-10-18): the canary answers `ci: github` and its first run on GitHub
+passed. Phase 8's first item has the detail.
 
 **The setup helper is closed** (2026-10-18): step 4 below, the canary's update through it, is
 done and pushed. The history below stays as the record of how the helper got here.
@@ -1008,7 +1000,7 @@ Done: CI for this repo (2026-10-15), under "Done" above.
 
 - [x] **CI shipped in generated projects**, behind the `ci` question (D17): `prek run --all-files`
   and `uv run pytest`, so a generated tool is checked away from its author's machine too.
-  **Done 2026-10-18, both repos, bar the canary** (see "Next up"). What landed: the base's
+  **Done 2026-10-18, both repos and the canary.** What landed: the base's
   `template/{% if ci == 'github' %}.github{% endif %}/workflows/ci.yml`, literal (its `${{ }}`
   would read as Jinja), Linux only with macOS and Windows commented in, on pushes to `main`, pull
   requests and by hand; actions pinned by the same SHAs as the repos' own CI, which nothing keeps in
@@ -1028,9 +1020,19 @@ Done: CI for this repo (2026-10-15), under "Done" above.
     `_external_data.use_case.ci`. The CLI's README covers the question, as it does `license`.
   - **Ownership.** The workflow is base-owned: add it to this repo's `CLAUDE.md` list, and check
     the CLI suite's one-owner test still passes with it rendered.
-  - **The canary** is on GitHub, so it should answer `github` on its next update; a new question
-    under `--defaults` takes `none`. Check how the helper's `update` meets a new question before
-    updating it, from a session started in the canary.
+  - **The canary answers `github`** (2026-10-18, `fcea7e4` there, pushed). A new question under
+    `--defaults` takes its default, `none`, so the helper was run as
+    `sh <base>/bootstrap.sh update <canary> -- --defaults -d ci=github`, where everything after
+    `--` reaches both layers' `copier update`. It committed the base (`2cab442 -> 0d1446b`) then
+    the CLI layer (`d6bac69 -> 8c36415`). Both answers files gained `ci: github` and nothing else
+    beyond `_commit`; the update added only the workflow and the README's CI paragraph.
+    `finish_branch.py` merged it. The first run on GitHub passed in 20 s: every gate hook (with
+    `no-commit-to-branch` skipped), then pytest, 282 passed and 1 skipped. The author kept the
+    canary Linux only, though it is public and macOS and Windows would run free, so the file stays
+    exactly as shipped and later updates merge into it cleanly. Copier printed "Make sure Git >=
+    2.24 is installed" for both layers, wrongly: git here is 2.56. **Watch:** GitHub's
+    annotation says `ubuntu-latest` moves to Ubuntu 26 from 2026-10-19, so the next runs (this
+    repo's and the CLI's weekly Monday runs included) are the first on the new image.
 - [ ] **Pin automation.** Mostly superseded by D16: step 3 left no hook rev to move. What is left
   is the dependency floors, which drifted 10–20 releases in two months and live in each use case.
   A scheduled workflow or Renovate, gated by the generation suite.
