@@ -6,12 +6,18 @@ new session would otherwise relearn. The detail of finished work is in `git log`
 
 ## Next up
 
+**Next: CI shipped in generated projects**, phase 8's first item, behind the `ci` question (D17,
+`none` or `github`). Chosen by the author on 2026-10-18, ahead of the rest of phase 10, as the
+last thing before the template is used for real work. One session in both repos, started here with
+`--add-dir ../python-template-cli-typer`, because the CLI layer must ask the question too (see
+the item). Both repos start clean on `main`, pushed. That step ends at a checkpoint.
+
+After it, the candidates are phase 10's "Later in the phase" (`python-canary-base` to exercise the
+uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`) and the rest
+of phase 8. Ask the author before starting either.
+
 **The setup helper is closed** (2026-10-18): step 4 below, the canary's update through it, is
-done and pushed. **The next step is not chosen yet.** The candidates already in this file are
-phase 10's "Later in the phase" (`python-canary-base` to exercise the uv-script skill, and
-`python-template-cli-stdlib` seeded from `archive/cli-stdlib`) and phase 8, which waits behind
-phase 10. Ask the author before starting either. The history below stays as the record of how the
-helper got here.
+done and pushed. The history below stays as the record of how the helper got here.
 
 **The setup helper's next pieces**, under "Setup helper (after step 9)". The shim, the `uv` pin
 in this repo and `doctor` were merged on 2026-10-17, and the pin in the CLI repo the same day
@@ -137,8 +143,9 @@ Neither repo pins its toolchain now (after step 3's push): uv, prek, copier and 
 their latest (uv 0.13.1, prek 0.5.5, copier 9.19.1, ruff 0.17.1, ty 0.0.89, rumdl 0.3.0 on
 2026-10-18).
 
-Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
-so that nothing under `template/` moves twice.
+Work runs sequentially, with no worktrees or side tracks. Phase 8's CI item goes first, by the
+author's choice (2026-10-18); the rest of phase 8 waits behind phase 10 so that nothing under
+`template/` moves twice.
 
 Running two generation suites at once failed the CLI repo's
 `test_generated_project_works_at_the_python_floor` once (2026-10-17); alone, and in a full rerun,
@@ -217,8 +224,11 @@ interactive; `claude -p` would exit after it. For a step in both template repos:
 
 ```bash
 cd ~/projects/github/GrndZero101/python-template-base && \
-  claude --add-dir ../python-template-cli-typer "<prompt naming the step in TODO.md>"
+  claude "<prompt naming the step in TODO.md>" --add-dir ../python-template-cli-typer
 ```
+
+The prompt goes **before** `--add-dir`: that flag takes any number of directories, so a prompt
+after it is read as a second directory and the session opens with no prompt (hit 2026-10-18).
 
 The prompt names the step and says what state it starts from (merged, pushed or not), so the
 first turn does not have to work that out.
@@ -447,6 +457,13 @@ Decided:
   sometimes break a run, which is fixed forward. The weekly CI run surfaces that. A downstream
   project that wants a frozen toolchain gets a `seal` command later (see "Later"); the template
   never seals itself.
+- **D17** (2026-10-18) — **CI is a question, and optional.** The base asks `ci`: `none` (the
+  default) or `github`. The author will use the template where there is either no CI or GitLab CI,
+  so GitHub Actions cannot be assumed. `none` renders nothing, which leaves a project free to add
+  its own CI without conflicting on `copier update`. `github` renders one thin
+  `.github/workflows/ci.yml` that runs `prek run --all-files` and `uv run pytest` and nothing
+  else, so the logic stays in the gate and another host costs only a short file. `gitlab` is a
+  later choice (see "Later"): nothing here can test it.
 
 ## Done: phases 1–9, and the lessons that still apply
 
@@ -984,12 +1001,22 @@ end-to-end in the CLI repo's suite, which already has projects to update.
 
 Done: CI for this repo (2026-10-15), under "Done" above.
 
-- [ ] **CI shipped in generated projects**: `prek run --all-files` and `uv run pytest`, so a
-  generated tool is checked away from its author's machine too. Base-owned, so it waits only so
-  that nothing under `template/` moves twice. **A consumer's private repo pays for it**: a Free
-  account has 2,000 minutes a month, and Windows and macOS burn the quota faster, macOS at about
-  ten times Linux. Ship Linux only, with Windows and macOS commented in; run on pushes to `main`
-  and on pull requests, not on every branch push.
+- [ ] **CI shipped in generated projects**, behind the `ci` question (D17): `prek run --all-files`
+  and `uv run pytest`, so a generated tool is checked away from its author's machine too.
+  Base-owned, so it waits only so that nothing under `template/` moves twice. The generation
+  suite renders both choices and checks that `none` renders no workflow. **A consumer's private
+  repo pays for `github`**: a Free account has 2,000 minutes a month, and Windows and macOS burn
+  the quota faster, macOS at about ten times Linux. Ship Linux only, with Windows and macOS
+  commented in; run on pushes to `main` and on pull requests, not on every branch push.
+  - **The CLI layer asks `ci` too.** Its task applies the base with `--defaults`, so a question
+    asked only by the base is never put to a CLI user, who would always get `none`. Follow
+    `license`: the CLI's `copier.yml` asks it, and the base's default reads
+    `_external_data.use_case.ci`. The CLI's README covers the question, as it does `license`.
+  - **Ownership.** The workflow is base-owned: add it to this repo's `CLAUDE.md` list, and check
+    the CLI suite's one-owner test still passes with it rendered.
+  - **The canary** is on GitHub, so it should answer `github` on its next update; a new question
+    under `--defaults` takes `none`. Check how the helper's `update` meets a new question before
+    updating it, from a session started in the canary.
 - [ ] **Pin automation.** Mostly superseded by D16: step 3 left no hook rev to move. What is left
   is the dependency floors, which drifted 10–20 releases in two months and live in each use case.
   A scheduled workflow or Renovate, gated by the generation suite.
@@ -1005,6 +1032,11 @@ Done: CI for this repo (2026-10-15), under "Done" above.
 
 ## Later
 
+- **`gitlab` as a `ci` choice** (D17). Not now: nothing here can test it. A thin `.gitlab-ci.yml`
+  running the same two commands as `github`, on pushes to `main` and merge requests. Before
+  starting, ask the author about the target instance: whether its runners reach PyPI, GitHub
+  (prek fetches hook repos from there) and astral.sh, or need a proxy or mirror; which runner image
+  is allowed; and whether the uv cache can be kept between jobs. Validated by hand there.
 - **A `seal` command for downstream projects** (D16). A project that has settled, and wants its
   toolchain frozen, runs one command that records what it runs now: an exact `required-version`,
   exact `uv tool` versions for prek and copier, and the hook revs as they stand. It runs in a
