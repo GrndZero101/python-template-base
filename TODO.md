@@ -13,18 +13,46 @@ in this repo and `doctor` were merged on 2026-10-17, and the pin in the CLI repo
 moving the pin here without the CLI repo fails this repo's CI). `setup`, `new` and `pins` were
 merged later that day; the settings-defaults fix planned with `new` proved unneeded (see "Built so
 far"), and `update` after them, and its end-to-end test in the CLI repo on 2026-10-17. Read
-"Built so far" there first. Next, in its own session, since it works in another directory:
+"Built so far" there first.
 
-- **The canary's update, through the helper**, which closes the helper: from the canary,
-  `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
-  new question. Generated projects now receive `required-version`; check `git diff main` on
-  both answers files before finishing, then push.
+**The canary's first run of the helper failed** (2026-10-17), and that run was discarded: the
+canary is back on `main` at `6615e62`, answers at `cf14b42` and `0bd228a`. `update` stopped at the
+CLI layer's commit: its `pyproject.toml` raised `required-version` to `>=0.12.24`, while the
+project's `.pre-commit-config.yaml` — the base's, not yet updated — still had `uv-pre-commit` at
+`0.12.22`, so the `uv-lock` hook's uv was refused. The floor and the hook's `rev` are copies of
+one pin held by **different layers**, and updating the use case first raises the floor before the
+rev. That happens on every pin move, whatever the floor. The end-to-end test missed it because
+its snapshots add a marker line and never move the pin. Nothing records why the use case went
+first. Next, each in its own session, in this order:
 
-The pin is 0.12.24, the last 0.12 release, moved by `pins --update uv --to 0.12.24` on
-2026-10-17 in both repos; uv's latest is 0.13.1. It stays static by decision: `required-version`
-can take a range but a `<0.13` cap would refuse a newer uv, and the shim's installer, `uv self
-update` and `uv-pre-commit`'s `rev` take exact versions, so only setup-uv could float, at the cost
-of reproducible CI. Moving it again is a decision for the author, not a step.
+1. **Update the base first.** In both repos: `ANSWERS_FILES` in `bootstrap.py` (and its tests),
+   the base README's description of `update`, the CLI README's manual flow ("Run both, this layer
+   first") and the generated `README.md.jinja`'s, and the end-to-end test's expected commit order.
+   Base first keeps the rev at or above the floor at every step, the invariant the base's
+   agreement test already asserts. Consider moving the pin in the end-to-end test's snapshots
+   too, so it covers the case that failed, if it costs little: the machinery budget wants this
+   defect's guard, not a general one.
+2. **Lower the floor to a capability floor.** Decided 2026-10-17, replacing "stays static" below:
+   the floor is the oldest uv that has what the template uses, raised only when something needs a
+   newer one, not the uv the tests last ran on. A floor that tracks releases makes every user
+   update uv for nothing. Find it from uv's changelog and check it by running at it: `uv run
+   --script` with `[tool.uv] exclude-newer`, `uv self version --short`, `uv self update --dry-run`
+   (0.7.3), `required-version` itself, whatever the `uv_build` backend and the generated gate
+   need. Then `pins --update uv --to <v>`, once `resolve_target` stops refusing a version below
+   the pin ("a floor only rises"): a deliberate `--to` may lower it, the latest may not.
+   `uv-pre-commit`'s rev is an `at_least` site, so it stays where it is. Not dropped: the shim
+   needs a minimum anyway, and `required-version` turns a too-old uv into "run `uv self update`"
+   instead of an obscure failure. CI's setup-uv stays at the floor, so CI tests what is promised.
+3. **The canary's update, through the helper**, which closes the helper: from the canary,
+   `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
+   new question. Generated projects now receive `required-version`; check `git diff main` on
+   both answers files before finishing, then push.
+
+The pin is 0.12.24, moved by `pins --update uv --to 0.12.24` on 2026-10-17 in both repos; uv's
+latest is 0.13.1. A pin, not a range: `required-version` can take one, but a `<0.13` cap would
+refuse a newer uv, and the shim's installer, `uv self update` and `uv-pre-commit`'s `rev` take
+exact versions, so only setup-uv could float, at the cost of reproducible CI. Step 2 changes what
+it is set to, not that it is a floor.
 
 Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
 so that nothing under `template/` moves twice.
