@@ -4,21 +4,18 @@
 #   sh bootstrap.sh doctor          # from a clone of this repo
 #   sh bootstrap.sh --yes doctor    # consent in advance, where there is no terminal to ask at
 #
-# A uv it can trust is one at or above UV_VERSION, installed by the standalone installer so that
-# `uv self update` works. There is no way around that check: everything after it, in bootstrap.py,
+# A uv it can trust is one installed by the standalone installer, so that `uv self update` works,
+# and updated by it to the latest release on every run. The template pins no uv: it runs the
+# latest, as CI does. There is no way around that check: everything after it, in bootstrap.py,
 # relies on it. Everything else is bootstrap.py's job; this file stays as thin as it can.
 #
 # POSIX sh only. /bin/sh is dash on Ubuntu and bash in POSIX mode on macOS, so no pipefail, no
-# [[ ]], no `local` and no arrays. No output of uv's is parsed: its exit codes and
-# `uv self version --short` are the whole interface.
+# [[ ]], no `local` and no arrays. No output of uv's is parsed: its exit codes are the whole
+# interface.
 #
 # Exits 1 when uv cannot be used, having said why and what to do; otherwise bootstrap.py's code.
 
 set -eu
-
-# The uv floor. tests/test_bootstrap_sh.py holds every other copy to this line: `required-version`
-# in the pyprojects, and setup-uv's `version` in CI.
-UV_VERSION=0.12.24
 
 say() {
     printf 'bootstrap: %s\n' "$*" >&2
@@ -27,20 +24,6 @@ say() {
 fail() {
     say "$@"
     exit 1
-}
-
-# Succeed when version $1 is older than $2, field by dot-separated field. awk, because `sort -V`
-# is not POSIX.
-older_than() {
-    awk -v have="$1" -v want="$2" 'BEGIN {
-        split(have, h, ".")
-        split(want, w, ".")
-        for (i = 1; i <= 3; i++) {
-            if (h[i] + 0 < w[i] + 0) exit 0
-            if (h[i] + 0 > w[i] + 0) exit 1
-        }
-        exit 1
-    }'
 }
 
 # Succeed when the user agrees to $1: --yes, or a "y" typed at a terminal. With neither, stop.
@@ -70,13 +53,13 @@ fetch() {
     fi
 }
 
-# Install uv at the pin and point $uv at it. PATH in this process has not changed, so the new uv
+# Install the latest uv and point $uv at it. PATH in this process has not changed, so the new uv
 # is used by absolute path for the rest of the run.
 install_uv() {
-    consent "uv is not on PATH. Install uv $UV_VERSION with the official installer" ||
+    consent "uv is not on PATH. Install it with the official installer" ||
         fail "uv is required: rerun and agree, or install it from https://docs.astral.sh/uv/"
     # Into a variable first, so a failed download stops here instead of piping nothing to sh.
-    installer=$(fetch "https://astral.sh/uv/$UV_VERSION/install.sh")
+    installer=$(fetch "https://astral.sh/uv/install.sh")
     # stdout is bootstrap.py's, for its report; the installer's progress is diagnostics.
     printf '%s\n' "$installer" | sh >&2
     uv="${UV_INSTALL_DIR:-${XDG_BIN_HOME:-$HOME/.local/bin}}/uv"
@@ -101,19 +84,9 @@ if ! uv=$(command -v uv); then
     install_uv
 fi
 
-# A uv too old to have `self version` reads as 0, so it takes the update path below.
-if ! have=$("$uv" self version --short 2>/dev/null); then
-    have=0
-fi
-
-if older_than "$have" "$UV_VERSION"; then
-    consent "uv $have is older than $UV_VERSION, this template's floor. Update it" ||
-        fail "uv $UV_VERSION or newer is required: rerun and agree, or run: uv self update $UV_VERSION"
-    "$uv" self update "$UV_VERSION" || not_standalone
-elif ! check=$("$uv" self update --dry-run 2>&1); then
-    printf '%s\n' "$check" >&2
-    not_standalone
-fi
+# Every run, with no question asked: running this is the consent, and the latest is what the
+# template supports. Its progress is diagnostics, so it goes to stderr with the installer's.
+"$uv" self update >&2 || not_standalone
 
 here=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 if [ ! -f "$here/bootstrap.py" ]; then
