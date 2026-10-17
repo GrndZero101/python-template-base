@@ -133,6 +133,32 @@ def test_the_base_alone_is_a_project_that_passes_its_gate(copie: Copie) -> None:
     _gate_and_test(project)
 
 
+# The workflow `ci: github` renders, and the two commands it must run: the gate and the tests.
+WORKFLOW = Path(".github") / "workflows" / "ci.yml"
+WORKFLOW_COMMANDS = ("prek run --all-files", "uv run pytest")
+
+
+@requires_uv
+@requires_prek
+def test_ci_github_ships_a_workflow_the_gate_accepts(copie: Copie) -> None:
+    """D17: `github` renders one thin workflow, and the project's gate (check-yaml) passes it."""
+    result = copie.copy(extra_answers={**SHARED_ANSWERS, "ci": "github"}, template_dir=REPO_ROOT)
+    assert result.exception is None, f"copier raised: {result.exception}"
+    assert result.project_dir is not None
+    workflow = (result.project_dir / WORKFLOW).read_text(encoding="utf-8")
+    for command in WORKFLOW_COMMANDS:
+        assert f"- run: {command}" in workflow, f"the workflow no longer runs `{command}`"
+    _gate_and_test(result.project_dir)
+
+
+@requires_uv
+def test_ci_none_ships_no_workflow(copie: Copie) -> None:
+    """D17: the default renders nothing, so a project's own CI never conflicts on update."""
+    project = _generate_base(copie)
+    assert not (project / ".github").exists()
+    assert "ci: none" in (project / ".copier-answers.base.yml").read_text(encoding="utf-8")
+
+
 @requires_uv
 @requires_prek
 def test_uv_script_reference_passes_the_gate_where_the_recipe_puts_it(copie: Copie) -> None:
