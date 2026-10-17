@@ -601,6 +601,26 @@ def test_main_update_runs_the_base_first_then_the_use_case(tmp_path: Path) -> No
     assert copier == [".copier-answers.base.yml", ".copier-answers.yml"]
 
 
+def test_main_update_upgrades_the_uv_tools_before_any_copier(tmp_path: Path) -> None:
+    project = _project(tmp_path, BASE)
+    machine = _updatable(project, BASE, after=[CHANGED])
+    main(["update", str(project)], _probe(machine, tmp_path))
+    first_copier = next(i for i, command in enumerate(machine.ran) if command[0] == "copier")
+    assert ("uv", "tool", "upgrade", "copier") in machine.ran[:first_copier]
+    assert ("uv", "tool", "upgrade", "prek") in machine.ran[:first_copier]
+
+
+def test_main_update_stops_when_a_uv_tool_will_not_upgrade(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project = _project(tmp_path, BASE)
+    machine = _updatable(project, BASE, after=[CHANGED])
+    del machine.answers["uv", "tool", "upgrade", "prek"]
+    assert main(["update", str(project)], _probe(machine, tmp_path)) == 1
+    assert not any(command[0] == "copier" for command in machine.ran)
+    assert "uv tool upgrade prek failed" in capsys.readouterr().err
+
+
 def test_main_update_with_nothing_new_makes_no_branch(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

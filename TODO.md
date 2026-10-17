@@ -61,25 +61,67 @@ first. Each step in its own session, in this order:
    **The CLI half is merged too** (2026-10-18, `18a8b3b` there): `required-version` out of both
    pyprojects (the root keeps `[tool.uv]` for `package = false`), setup-uv's `version` out of both
    steps, a weekly run at 06:47 UTC on Mondays, the agreement test deleted, and both READMEs'
-   base-first reason reworded. Its suite passed against the unpushed base, 43 of 43. **Left: push
-   the base first, the CLI straight after, then `gh run rerun <id> --failed` on the base's run**,
-   which will have checked out the CLI's old `main`.
-3. **Unpin the other tools** (D16): prek and copier, then the gate's hook revs. `setup` and
-   `update` run `uv tool upgrade prek copier` every time; prek and copier leave the root dev group
-   for uv tools, as CI already installs them for the end-to-end test, and the tests find them on
-   PATH. The hook revs (ruff, rumdl, the hygiene hooks) and ty's `ty==0.0.84` cannot float in a
-   prek config: a rev is a tag. Open, for this step to settle by trying each: local hooks through
-   `uv run --with <tool>` with no version (check whether uv re-resolves or reuses a cached env), or
-   `prek autoupdate` run by `update` and by the weekly CI. A project's autoupdate edits a
-   base-owned file, so the first conflicts on the next `copier update`. Also decide here whether
-   the policy reaches the dev group's `uv.lock` (`uv lock --upgrade` weekly) and the uv-script
-   skill's `exclude-newer`, which pins a script's dependencies by date. Actions stay pinned by SHA:
-   that is supply-chain hygiene, not the toolchain.
+   base-first reason reworded. Its suite passed against the unpushed base, 43 of 43. Both were
+   pushed on 2026-10-18, base first; the base's run passed without a rerun, having checked out the
+   CLI's new `main`, pushed seconds after.
+3. [x] **Unpin the other tools** (D16), both repos, merged 2026-10-18 on `build/unpin-tools` in
+   each, **unpushed**. Settled by trying each option in a generated project:
+   - **Hook revs: local hooks through `uv run --no-project --with <tool>`, no version.** uv
+     re-resolves on every run and trusts its cached copy of PyPI's simple page for its
+     `max-age=600`, so a release reaches the gate within ten minutes (`-v`: "Found fresh
+     response"). Warm, the base's whole gate took 0.21 s against 0.19 s pinned; the first run,
+     downloading, 2.4 s. Offline with a stale cache it fails after 4 s of retries, **as the pinned
+     `ty==0.0.84` hook already did**: `--with` resolves even an exact pin. `uvx ruff` was rejected:
+     it reuses an installed uv tool and never floats; `uvx ruff@latest` hits the network every run.
+     Every remote hook is on PyPI (`conventional-pre-commit`, `ruff`, `rumdl`, `shellcheck-py`),
+     each now a local hook with its upstream entry, types and `require_serial`, ids unchanged; ty is
+     `uv run --with ty`. The gate passed at ruff 0.17.1, ty 0.0.89 and rumdl 0.3.0 with no code
+     change, and the commit-msg hook still rejects a bad message.
+   - **`prek autoupdate` rejected.** Tried: it moved ruff and rumdl in a project, and the next
+     `copier update` merged cleanly only when the base had moved to the **same** tag; the base at
+     ruff v0.17.0 against the project's v0.17.1 left conflict markers in
+     `.pre-commit-config.yaml`. It also cannot move ty's `==`, and needs a bot to move the base.
+   - **prek leaves both dev groups**; CI installs it with `uv tool install` and puts
+     `uv tool dir --bin` on `$GITHUB_PATH`, which setup-uv does itself only on Windows.
+     Generated projects already ran prek from PATH.
+   - **copier cannot leave**: pytest-copie depends on it, and under `uv run` the venv's copier
+     shadows the uv tool's, nested `copier copy` tasks included. Its floor is gone from both dev
+     groups and CI syncs with `--upgrade` instead of `--locked`, so CI runs the latest copier;
+     both locks were upgraded too (copier 9.17.0 to 9.19.1). Locally, `uv lock --upgrade` moves it.
+   - **`update` upgrades the uv tools first**, as `setup` does, and stops if one will not
+     upgrade, before any copier runs. Two tests.
+   - **Unchanged by decision:** a generated project's `uv.lock` and its dev-group floors are its
+     own dependencies, not the toolchain, and are not shipped (`uv sync` writes the lock at
+     generation, at the latest of everything). The uv-script skill's `exclude-newer` stays: it is
+     a standalone script's substitute for a lock. Actions stay pinned by SHA: supply-chain
+     hygiene, not the toolchain.
+   - **Fixed on the way: the generation suite wrote into this repo's index at commit.** A git
+     hook exports `GIT_INDEX_FILE=.git/index`; copier runs `git --git-dir=<temp clone>` from the
+     repo root, so its staging of the dirty template landed in **this** repo's index, pointing at
+     objects only the clone had. Seen as a failed commit ("invalid object ... for 'TODO.md'") and
+     `git fsck` reporting a missing blob; `git rm --cached` and `git add` of the file repaired it.
+     Not copier 9.19: 9.17.0 does it too, on a sound index, and a run outside a hook does not.
+     Earlier commits likely hit it only in the cache-tree, which the next write rebuilds. Both
+     repos' `tests/conftest.py` now drop git's repo-local variables (`git rev-parse
+     --local-env-vars`) in `pytest_configure`, from `os.environ` **and** plumbum's `local.env`,
+     which copier runs git through and which copied the environment when pytest-copie loaded,
+     before any conftest. Verified: the suite under `GIT_INDEX_FILE=.git/index`, then a clean fsck.
+   - Checked: the base's whole gate (generation tests included) and the CLI's gate and suite
+     against this base, 43 of 43. The CLI repo had **no git shims installed**; `prek install` with
+     all three fixed it locally. **Left: push the base first, the CLI straight after**, then watch
+     the base's run; rerun it with `gh run rerun <id> --failed` if it checked out the CLI's old
+     `main`. The base half alone would pass, since it only stops relying on the CLI's dev group.
 4. **The canary's update, through the helper**, which closes the helper: from the canary,
    `sh ../python-template-base/bootstrap.sh update . --finish`, interactive, so copier asks any
    new question. Check `git diff main` on both answers files before finishing, then push.
 
-Neither repo pins uv now; both run the latest (0.13.1 on 2026-10-18).
+Neither repo pins its toolchain now (after step 3's push): uv, prek, copier and every hook run at
+their latest (uv 0.13.1, prek 0.5.5, copier 9.19.1, ruff 0.17.1, ty 0.0.89, rumdl 0.3.0 on
+2026-10-18).
+
+Found on the way, not fixed: generating the base alone with a blank `author_name` writes
+`Copyright (c) 2026` with a trailing space into `LICENSE`, which `trailing-whitespace` rewrites on
+the first gate run. The tests always pass an author, so nothing catches it.
 
 Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
 so that nothing under `template/` moves twice.
@@ -238,15 +280,15 @@ the start directory.
   2026-10-16, Ubuntu 1m26, macOS 4m10, Windows 14m23. Why Windows is that slow is unconfirmed: the
   uv cache is on `D:` and pytest's tmp on `C:`, so uv cannot hardlink and may copy every package
   per project. `--basetemp` on `D:` plus `--durations=15` would test it, in a Windows uplift.
-  `prek` is in the root dev group, so CI's version comes from `uv.lock`; with `CI=true` a missing
+  CI installs `prek` and `copier` as uv tools and syncs with `--upgrade`; with `CI=true` a missing
   tool fails a test rather than skipping it.
-- Toolchain: `uv`, `ruff` v0.16.10, `ty` 0.0.84, `prek` 0.5.4, `rumdl` v0.2.78, `copier` 9.17.0.
+- Toolchain: `uv`, `ruff`, `ty`, `prek`, `rumdl`, `copier`, all at their latest (D16). Every hook
+  but the builtins is local, `uv run --no-project --with <tool>` with no version (step 3).
   Preview rules are selected one by one (`explicit-preview-rules`); pytest names its strict options
   individually and turns warnings into errors. **ty is a local hook** since 2026-10-16,
-  `uv run --with ty==0.0.84 ty check`, not ty-pre-commit: that hook runs uv's preview `uv check`,
-  which skips every file with a PEP 723 header and forwards no flag, so a uv script was never
-  type-checked. The pin is the `ty==` in `template/.pre-commit-config.yaml.jinja`, one place, and
-  `prek update` does not move it.
+  `uv run --with ty ty check`, not ty-pre-commit: that hook runs uv's preview `uv check`, which
+  skips every file with a PEP 723 header and forwards no flag, so a uv script was never
+  type-checked.
 - `template/tools/`, eleven modules: the hooks `branch_guard` (`PreToolUse`: no edits on `main`),
   `gate` (`PostToolUse`: the gate on every Edit/Write, concise, pausing on conflict markers),
   `stop_gate` (`Stop`: changed files and the tests, measured from the merge-base, blocking once)
@@ -934,11 +976,9 @@ Done: CI for this repo (2026-10-15), under "Done" above.
   account has 2,000 minutes a month, and Windows and macOS burn the quota faster, macOS at about
   ten times Linux. Ship Linux only, with Windows and macOS commented in; run on pushes to `main`
   and on pull requests, not on every branch push.
-- [ ] **Pin automation.** Mostly superseded by D16: the toolchain is unpinned in "Next up" step 3,
-  which settles the hook revs. What is left is the dependency floors, which drifted 10–20 releases
-  in two months and live in each use case. A scheduled workflow or Renovate, gated by the
-  generation suite. `prek update` cannot read `template/.pre-commit-config.yaml.jinja`; phase 4 ran
-  it in a generated project and copied the revisions back, which a workflow can do too.
+- [ ] **Pin automation.** Mostly superseded by D16: step 3 left no hook rev to move. What is left
+  is the dependency floors, which drifted 10–20 releases in two months and live in each use case.
+  A scheduled workflow or Renovate, gated by the generation suite.
 - [ ] **Tagging** (D5), one tag series per repo. **Once any tag exists, `copier update` moves to
   the latest PEP 440 tag rather than `HEAD`** unless given `--vcs-ref HEAD` — right for stable
   releases, wrong while iterating, because fixes stop reaching the canary until tagged. Stay

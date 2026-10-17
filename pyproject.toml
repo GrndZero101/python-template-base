@@ -20,10 +20,10 @@ requires-python = ">=3.14"
 [tool.uv]
 package = false
 
+# No toolchain here. prek is a uv tool. copier comes in through pytest-copie, and the suite's
+# `copier` commands run that copy, so CI syncs with `--upgrade` to run its latest release.
 [dependency-groups]
 dev = [
-    "copier>=9.17.0",
-    "prek>=0.5.4",
     "pytest>=9.1.1",
     "pytest-copie>=0.3.1",
 ]

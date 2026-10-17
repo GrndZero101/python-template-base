@@ -572,6 +572,9 @@ def finish_update(probe: Probe, project: Path) -> bool:
 def _update(probe: Probe, args: argparse.Namespace) -> int:
     """Run `update`: each layer, a report of them on stdout, then the finish or how to do it."""
     run = UpdateRun(Path(args.project).resolve(), tuple(args.copier_args), finish=args.finish)
+    # The latest copier does the update and the latest prek gates its commits, as on CI.
+    if not upgrade_uv_tools(probe):
+        return FAILED
     layers = _layers_to_update(probe, run.project)
     if layers is None:
         return FAILED
@@ -643,7 +646,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="after --, passed to copier copy as is: -- --vcs-ref <commit>",
     )
     update_parser = commands.add_parser(
-        "update", help="update a project from both its templates, committed on a branch"
+        "update",
+        help="upgrade copier and prek, then update a project from both its templates on a branch",
     )
     update_parser.add_argument("project", help="the project's directory")
     update_parser.add_argument(
