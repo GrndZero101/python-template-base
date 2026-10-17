@@ -149,4 +149,7 @@ It runs the root's whole gate before merging, generation test included: about fi
 Work is cut into sessions at checkpoints, which `TODO.md` defines under "Sessions and
 checkpoints" and names in each phase. At one, finish and merge the step, update `TODO.md` so a
 fresh session can start from it alone, then tell the user: "Checkpoint: start a new session", with
-the next step. Don't carry on into the next step in the same session.
+the next step and the command that starts it, prompt included, as `TODO.md` shows. Don't carry on
+into the next step in the same session. A step that also changes the CLI repo runs in one session
+started here with `--add-dir ../python-template-cli-typer`; read that repo's `CLAUDE.md` before
+editing there.

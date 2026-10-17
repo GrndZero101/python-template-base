@@ -155,13 +155,26 @@ with the next step named in "Next up". Before that it finishes the step, merges 
 this file, which is the hand-off — a fresh session must be able to start from it alone, and a gap
 it finds is fixed here first.
 
+**Every checkpoint ends with the command that starts the next session**, prompt included, ready
+to paste (2026-10-18). `claude "<prompt>"` runs the prompt as the first turn and stays
+interactive; `claude -p` would exit after it. For a step in both template repos:
+
+```bash
+cd ~/projects/github/GrndZero101/python-template-base && \
+  claude --add-dir ../python-template-cli-typer "<prompt naming the step in TODO.md>"
+```
+
+The prompt names the step and says what state it starts from (merged, pushed or not), so the
+first turn does not have to work that out.
+
 A checkpoint falls:
 
 - at the end of any step that ends mergeable, once this file says what comes next;
 - after a review is triaged and recorded — the session that made the decisions triages, since it
   holds the evidence, and a fresh one carries them out;
 - when the next step needs another working directory: hooks, skills and memory all belong to the
-  directory a session started in;
+  directory a session started in. The CLI repo does not count — it is added to a base session (see
+  "How work runs") — but the canary does, since it has hooks of its own;
 - when `/context` shows the session past about half its window, at the next mergeable point.
 
 Phase 10's checkpoints are named in its steps, C1 to C5. C4 is mandatory, not advisory: the
@@ -176,6 +189,27 @@ switching; each session pays its own context, against goal 3; two local generati
 each other down; and `finish_branch.py` ends by switching to `main`, which git refuses while
 another worktree has it checked out. Phase 10's steps also move the files each next step depends
 on. Read-only work — a review, an audit — is still a session started where the files are.
+
+**A step in both template repos is one session** (2026-10-18), started in the base with
+`--add-dir ../python-template-cli-typer` (or `/add-dir` mid-session). Before, each such step took
+two sessions, the second re-deriving what the first knew, against goal 3. Nothing is lost:
+
+- The base's hooks, `CLAUDE.md`, skills and memory load as before.
+- The CLI repo has no `.claude/` of its own, and the base's hooks skip a file in a sibling repo by
+  design (`owning_repo` in `hook_payload.py`), so its edits are ungated as they always were. Its
+  prek git hooks still run at commit, and `finish_branch.py` gates it in full.
+- Its `CLAUDE.md` is not loaded for an added directory, so the session reads it before the first
+  edit there. `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` is said to load it; unverified —
+  check with `/memory` before relying on it.
+- Git there is `git -C ../python-template-cli-typer`. Its suite and its finish run inside it,
+  pointed at this checkout, each as one command:
+  `cd ../python-template-cli-typer && BASE_TEMPLATE_DIR=<base> uv run pytest`, and the same with
+  `uv run python <base>/template/tools/finish_branch.py --no-tests "<summary>"`.
+
+The order of work is unchanged: the base half, then the CLI half, then the pushes (base first) and
+the base's CI rerun. Starting in the parent directory instead was rejected: it has no
+`.claude/settings.json` or `.git`, so no hook would run in either repo, and the memory is keyed on
+the start directory.
 
 ## Status snapshot
 
