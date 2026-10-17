@@ -621,9 +621,11 @@ def _pins(probe: Probe, root: Path, args: argparse.Namespace) -> int:
     return 0 if move_uv(probe, root, cli.resolve(), new) else FAILED
 
 
-# What `update` brings up to date, in this order: the use case, then the base under it. A project
-# generated from the base alone has only the second.
-ANSWERS_FILES = (".copier-answers.yml", ".copier-answers.base.yml")
+# What `update` brings up to date, in this order: the base, then the use case over it. A project
+# generated from the base alone has only the first. Base first because a pin can have copies in
+# both layers: the uv floor is the use case's `required-version`, but the base's `uv-pre-commit`
+# rev runs the commit's `uv-lock` hook, so raising the floor first refuses that hook's uv.
+ANSWERS_FILES = (".copier-answers.base.yml", ".copier-answers.yml")
 UPDATE_BRANCH = "chore/template-update"
 UPDATE_SUMMARY = "chore(template): update from the templates"
 # The two keys read from an answers file are plain scalars, so there is no YAML library to need.

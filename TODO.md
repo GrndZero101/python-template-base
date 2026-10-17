@@ -22,16 +22,18 @@ project's `.pre-commit-config.yaml` — the base's, not yet updated — still ha
 `0.12.22`, so the `uv-lock` hook's uv was refused. The floor and the hook's `rev` are copies of
 one pin held by **different layers**, and updating the use case first raises the floor before the
 rev. That happens on every pin move, whatever the floor. The end-to-end test missed it because
-its snapshots add a marker line and never move the pin. Nothing records why the use case went
-first. Next, each in its own session, in this order:
+its snapshots add a marker line and never move the pin. Nothing recorded why the use case went
+first. Each step in its own session, in this order:
 
-1. **Update the base first.** In both repos: `ANSWERS_FILES` in `bootstrap.py` (and its tests),
-   the base README's description of `update`, the CLI README's manual flow ("Run both, this layer
-   first") and the generated `README.md.jinja`'s, and the end-to-end test's expected commit order.
-   Base first keeps the rev at or above the floor at every step, the invariant the base's
-   agreement test already asserts. Consider moving the pin in the end-to-end test's snapshots
-   too, so it covers the case that failed, if it costs little: the machinery budget wants this
-   defect's guard, not a general one.
+1. [x] **Update the base first** (2026-10-17, both repos). `ANSWERS_FILES` in `bootstrap.py` and
+   its tests, both READMEs' manual flows (each now says why), the generated `README.md.jinja`'s,
+   and the end-to-end test's expected commit order. Base first keeps the rev at or above the floor
+   at every step, the invariant the base's agreement test already asserts. **Not done: moving the
+   pin in the end-to-end test's snapshots.** CI's uv *is* the pin, so the test could reproduce the
+   failure only by generating at a version below the pin and updating to it. That needs a
+   hard-coded earlier version with a `uv-pre-commit` tag, one more copy for every pin move, and
+   step 2 is about to lower the pin to a floor not yet known. Weigh it again after step 2, if at
+   all: the order is now asserted by both repos' tests.
 2. **Lower the floor to a capability floor.** Decided 2026-10-17, replacing "stays static" below:
    the floor is the oldest uv that has what the template uses, raised only when something needs a
    newer one, not the uv the tests last ran on. A floor that tracks releases makes every user
@@ -808,12 +810,13 @@ why:
 - **`update <project>`** (branch `feat/bootstrap-update`) runs the README's two-layer flow:
   `doctor` and copier on PATH, as `new`; a clean checkout on `main` or `chore/template-update`
   (anything else is refused, so a resumed run is the same command); then each answers file present,
-  `.copier-answers.yml` first, as `copier update --trust -a <file> [args after --] <project>` at
-  the terminal, `uv sync`, and `git add --all` plus a commit named for the layer and its new
-  `_commit` (`_src_path`'s last part: `python-template-base`). The branch is made only at the first
-  commit or conflict, so an update that changes nothing leaves none. Checked by hand on scratch
-  copies (2026-10-17) before it was written: **copier exits 0 on a conflict**, writing markers and
-  recording each file as unmerged, so the helper reads `git diff --name-only --diff-filter=U`; an
+  `.copier-answers.base.yml` first (the use case went first until the canary's run, above), as
+  `copier update --trust -a <file> [args after --] <project>` at the terminal, `uv sync`, and
+  `git add --all` plus a commit named for the layer and its new `_commit` (`_src_path`'s last
+  part: `python-template-base`). The branch is made only at the first commit or conflict, so an
+  update that changes nothing leaves none. Checked by hand on scratch copies (2026-10-17) before
+  it was written: **copier exits 0 on a conflict**, writing markers and recording each file as
+  unmerged, so the helper reads `git diff --name-only --diff-filter=U`; an
   update already current exits 0 and changes nothing; an unknown `--data` key is ignored, so args
   after `--` go to both layers; and `git switch --create` carries unmerged paths along. A conflict,
   a failed `uv sync` or a commit the hooks refuse stops it with the steps to carry on (resolve,
@@ -827,7 +830,7 @@ why:
 - **`update` end to end** (CLI repo, branch `test/bootstrap-update`):
   `test_the_setup_helper_updates_both_layers_on_a_branch` snapshots both templates, moves each
   forward, and runs `uv run --script <base_checkout>/bootstrap.py update <project> -- --defaults`;
-  it asserts both markers, the branch, one commit per layer by subject (the base's newest) and a
+  it asserts both markers, the branch, one commit per layer by subject (the use case's newest) and a
   clean tree. About five seconds warm. Not CI-only after all: it skips locally unless copier and
   prek are uv tools, and on CI both workflows `uv tool install` them for it. doctor's git identity
   comes from `git config`, which never sees CI's `GIT_AUTHOR_*`, so the test hands the helper a
