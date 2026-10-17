@@ -108,25 +108,28 @@ separately, touching only its own files:
 
 | Layer | Answers file | Command |
 |---|---|---|
-| The use case | `.copier-answers.yml` | `copier update --trust` |
 | The base | `.copier-answers.base.yml` | `copier update --trust -a .copier-answers.base.yml` |
+| The use case | `.copier-answers.yml` | `copier update --trust` |
 
-A project generated from the base alone has only the second. Under a use case, run both, the use
-case first. Each needs a clean tree, so commit between them:
+A project generated from the base alone has only the first. Under a use case, run both, the base
+first: a pin can have a copy in each layer, and the base's are the ones that must not lag. The
+use case's `required-version` is the `uv` floor, while the base's `uv-pre-commit` rev is the `uv`
+that the commit's `uv-lock` hook runs, so raising the floor first refuses that hook. Each update
+needs a clean tree, so commit between them:
 
 ```bash
 git status --short                    # must be clean; copier refuses otherwise
 git switch -c chore/template-update   # branch first; main takes no direct commits
 
-copier update --trust                 # the use case: a three-way merge into the working tree
+copier update --trust -a .copier-answers.base.yml   # the base: a three-way merge into the tree
 # resolve conflicts, if any (below)
 uv sync                               # before any check; see below
 git diff                              # review; nothing is committed for you
 git add -A                            # -A, not -a: the template may have added files
-git commit -m "chore(template): update python-template-cli-typer to <commit>"
+git commit -m "chore(template): update python-template-base to <commit>"
 
-copier update --trust -a .copier-answers.base.yml
-# resolve, sync, review and commit as above, naming python-template-base
+copier update --trust                 # the use case
+# resolve, sync, review and commit as above, naming python-template-cli-typer
 
 uv run python tools/finish_branch.py "chore(template): update from the templates"
 ```
@@ -135,7 +138,7 @@ uv run python tools/finish_branch.py "chore(template): update from the templates
 `finish_branch.py` squashes the branch, runs the gate and the tests, and merges it into `main`.
 
 From a clone of this repo, `sh bootstrap.sh update my-project` runs that flow: each layer the
-project has, the use case first, committed on `chore/template-update`. A layer with nothing new is
+project has, the base first, committed on `chore/template-update`. A layer with nothing new is
 reported as current, and when no layer changes it makes no branch. It stops at a conflict, or at a
 commit the project's hooks refuse, leaves the changes in place, and prints how to carry on: resolve,
 commit, rerun the same command, which finds the finished layer current and moves on. It ends with

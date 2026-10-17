@@ -805,23 +805,23 @@ def test_main_update_commits_each_layer_on_a_branch_and_reports_both(
     assert main(["update", str(project)], _probe(machine, tmp_path)) == 0
     assert machine.branch == UPDATE_BRANCH
     assert _commits(machine) == [
-        f"chore(template): update python-template-cli-typer to {MOVED_TO}",
         f"chore(template): update python-template-base to {MOVED_TO}",
+        f"chore(template): update python-template-cli-typer to {MOVED_TO}",
     ]
     captured = capsys.readouterr()
     assert captured.out == (
-        f"ok   python-template-cli-typer  aaa1111 -> {MOVED_TO}\n"
         f"ok   python-template-base       bbb2222 -> {MOVED_TO}\n"
+        f"ok   python-template-cli-typer  aaa1111 -> {MOVED_TO}\n"
     )
     assert "tools/finish_branch.py" in captured.err
 
 
-def test_main_update_runs_the_use_case_first_then_the_base(tmp_path: Path) -> None:
+def test_main_update_runs_the_base_first_then_the_use_case(tmp_path: Path) -> None:
     project = _project(tmp_path, USE_CASE, BASE)
     machine = _updatable(project, USE_CASE, BASE, after=[CHANGED, CHANGED])
     main(["update", str(project)], _probe(machine, tmp_path))
     copier = [command[4] for command in machine.ran if command[0] == "copier"]
-    assert copier == [".copier-answers.yml", ".copier-answers.base.yml"]
+    assert copier == [".copier-answers.base.yml", ".copier-answers.yml"]
 
 
 def test_main_update_with_nothing_new_makes_no_branch(
@@ -860,10 +860,10 @@ def test_main_update_stops_at_a_conflict_on_the_branch_and_says_how_to_carry_on(
     assert main(["update", str(project), "--", "--defaults"], _probe(machine, tmp_path)) == 1
     assert machine.branch == UPDATE_BRANCH, "the commit that resolves it must land off main"
     assert _commits(machine) == []
-    assert not any(command[4:5] == (BASE[0],) for command in machine.ran), "the base is next"
+    assert not any(command[4:5] == (USE_CASE[0],) for command in machine.ran), "it is next"
     captured = capsys.readouterr()
-    assert captured.out == "FAIL python-template-cli-typer  conflicts in README.md\n"
-    assert f'git commit -m "chore(template): update python-template-cli-typer to {MOVED_TO}"' in (
+    assert captured.out == "FAIL python-template-base  conflicts in README.md\n"
+    assert f'git commit -m "chore(template): update python-template-base to {MOVED_TO}"' in (
         captured.err
     )
     assert f"update {project} -- --defaults" in captured.err
