@@ -14,7 +14,8 @@
 #
 # The repo is public, so GitHub-hosted runners cost nothing on any OS. Actions are pinned by
 # commit SHA with the release in a comment; a tag can be moved, a SHA cannot. The toolchain is not
-# pinned: setup-uv installs the latest uv, as bootstrap.sh does on a user's machine.
+# pinned: setup-uv installs the latest uv, as bootstrap.sh does on a user's machine, and prek,
+# copier and the gate's hooks run at their latest too.
 
 name: CI
 
@@ -29,8 +30,8 @@ name: CI
 # nothing; the commit hooks have already checked that markdown locally. Run the workflow by hand
 # (workflow_dispatch) to force a run.
 #
-# And weekly, with no push: nothing pins uv, so a uv release that breaks the template shows within
-# a week rather than on the next push, whenever that is.
+# And weekly, with no push: nothing pins the toolchain, so a release of uv, prek, copier or a hook
+# that breaks the template shows within a week rather than on the next push, whenever that is.
 on:
   push:
     paths:
@@ -76,9 +77,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
-      - run: uv sync --locked
+      # setup-uv puts uv's tool bin directory on PATH only on Windows; elsewhere it is uv's default,
+      # which a runner need not have on PATH. bash, so the line is the same on every OS.
+      - run: echo "$(uv tool dir --bin)" >> "$GITHUB_PATH"
+        shell: bash
+      - run: uv tool install prek
       # no-commit-to-branch refuses work on main, which is what a push to main checks out.
-      - run: uv run prek run --all-files --show-diff-on-failure --skip no-commit-to-branch --skip generation-tests
+      - run: prek run --all-files --show-diff-on-failure --skip no-commit-to-branch --skip generation-tests
 
   generation:
     strategy:
@@ -109,14 +114,21 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           cache-python: true
-      - run: uv sync --locked
-      # prek and copier come from the dev group, so the suite finds them on the venv's PATH.
-      - run: uv run pytest -ra
-      # The CLI repo's own locked environment, with this checkout as the base under test.
-      - run: uv sync --locked
-        working-directory: cli
-      # One CLI test runs this checkout's bootstrap.py, whose doctor checks for these as uv tools.
+      # setup-uv puts uv's tool bin directory on PATH only on Windows; elsewhere it is uv's default,
+      # which a runner need not have on PATH. bash, so the line is the same on every OS.
+      - run: echo "$(uv tool dir --bin)" >> "$GITHUB_PATH"
+        shell: bash
+      # The uv tools, as bootstrap.sh setup installs them on a user's machine: every generated
+      # project's gate is prek on PATH, and the CLI suite runs bootstrap.py, whose doctor checks
+      # for both.
       - run: uv tool install copier
       - run: uv tool install prek
+      # --upgrade, not --locked: the suite's copier is the one pytest-copie brings in, and it runs
+      # at its latest release like the rest of the toolchain.
+      - run: uv sync --upgrade
+      - run: uv run pytest -ra
+      # The CLI repo's own environment, with this checkout as the base under test.
+      - run: uv sync --upgrade
+        working-directory: cli
       - run: uv run pytest -ra
         working-directory: cli

@@ -161,8 +161,9 @@ uv run pytest                           # tests, which the gate does not run
 ```
 
 Run the linters **through prek, never directly.** `ty` is not installed outside the gate, so
-`ty check` is "command not found", and a `ruff` on PATH can be a different version from the hook's
-pin and disagree with it. prek runs the pinned versions, so what passes here passes at commit.
+`ty check` is "command not found", and a `ruff` on PATH can be older than the hook's, which is
+always the latest release, and disagree with it. prek runs what the commit will, so what passes here
+passes at commit.
 
 First-time setup needs **all three** shims. `prek install` alone wires only `pre-commit`, which
 silently disables the commit-message check *and* makes `git merge --no-ff` into `main` fail:

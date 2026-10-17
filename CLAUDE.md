@@ -91,7 +91,8 @@ On a push that touches what `generation-tests` watches, the root gate's config o
 and the CLI repo's, checked out into `cli/` with this checkout as the base — the only automatic
 check of the layering. A docs-only push runs nothing. Push a branch to see macOS before merging.
 On CI (`CI=true`) a test needing `uv`, `prek` or `copier` fails rather than skips when the tool is
-missing; `prek` and `copier` come from the dev group.
+missing. Nothing in the toolchain is pinned: CI installs `prek` and `copier` as uv tools, and syncs
+with `--upgrade`, since the suite's own `copier` comes in through pytest-copie.
 
 Windows runs only when asked: `gh workflow run ci.yml --ref <branch> -f windows=true`. The targets
 are Unix-alikes, and Windows took ten times Linux's time, so it is checked at milestones and in work

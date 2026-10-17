@@ -136,8 +136,9 @@ uv run python tools/finish_branch.py "chore(template): update from the templates
 `<commit>` is the `_commit` value copier just wrote to that layer's answers file.
 `finish_branch.py` squashes the branch, runs the gate and the tests, and merges it into `main`.
 
-From a clone of this repo, `sh bootstrap.sh update my-project` runs that flow: each layer the
-project has, the base first, committed on `chore/template-update`. A layer with nothing new is
+From a clone of this repo, `sh bootstrap.sh update my-project` runs that flow: it upgrades copier
+and prek as `setup` does, then updates each layer the project has, the base first, committed on
+`chore/template-update`. A layer with nothing new is
 reported as current, and when no layer changes it makes no branch. It stops at a conflict, or at a
 commit the project's hooks refuse, leaves the changes in place, and prints how to carry on: resolve,
 commit, rerun the same command, which finds the finished layer current and moves on. It ends with

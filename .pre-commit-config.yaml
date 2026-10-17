@@ -47,48 +47,69 @@ repos:
         args: [--branch, main]
         stages: [pre-commit]
 
-  - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v4.4.0
-    hooks:
-      - id: conventional-pre-commit
-        stages: [commit-msg]
-
-  - repo: https://github.com/rvben/rumdl-pre-commit
-    rev: v0.2.78
-    hooks:
-      - id: rumdl-fmt
-        exclude: ^template/
-      - id: rumdl
-        exclude: ^template/
-
-  # The root's own Python is just the generation tests, but they are held to the same rules.
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
-    hooks:
-      # The fixer before the formatter: a fix can leave code that needs reformatting.
-      - id: ruff-check
-        args: [--fix]
-        exclude: ^template/
-      - id: ruff-format
-        exclude: ^template/
-
-  # bootstrap.sh runs before anything else is installed, under whatever /bin/sh is: dash on Ubuntu,
-  # bash in POSIX mode on macOS. --shell=sh holds it to POSIX, whatever its shebang says.
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1
-    hooks:
-      - id: shellcheck
-        args: [--shell=sh]
-        exclude: ^template/
-
+  # The tools from here on run at their latest release, as local hooks through `uv run --with`
+  # with no version: template/.pre-commit-config.yaml.jinja says why and what it costs.
   - repo: local
     hooks:
+      - id: conventional-pre-commit
+        name: Conventional Commit
+        entry: uv run --no-project --with conventional-pre-commit conventional-pre-commit
+        language: system
+        always_run: true
+        stages: [commit-msg]
+
+      - id: rumdl-fmt
+        name: rumdl fmt
+        entry: uv run --no-project --with rumdl rumdl fmt
+        language: system
+        types: [markdown]
+        require_serial: true
+        exclude: ^template/
+      - id: rumdl
+        name: rumdl check
+        entry: uv run --no-project --with rumdl rumdl check
+        language: system
+        types: [markdown]
+        require_serial: true
+        exclude: ^template/
+
+      # The root's own Python is just the generation tests and the setup helper, but they are held
+      # to the same rules. The fixer before the formatter: a fix can leave code that needs
+      # reformatting.
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --no-project --with ruff ruff check --force-exclude
+        args: [--fix]
+        language: system
+        types_or: [python, pyi, jupyter]
+        require_serial: true
+        exclude: ^template/
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --no-project --with ruff ruff format --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter, markdown]
+        require_serial: true
+        exclude: ^template/
+
+      # bootstrap.sh runs before anything else is installed, under whatever /bin/sh is: dash on
+      # Ubuntu, bash in POSIX mode on macOS. --shell=sh holds it to POSIX, whatever its shebang
+      # says. shellcheck-py is shellcheck's binary as a wheel.
+      - id: shellcheck
+        name: shellcheck
+        entry: uv run --no-project --with shellcheck-py shellcheck
+        args: [--shell=sh]
+        language: system
+        types: [shell]
+        require_serial: true
+        exclude: ^template/
+
       # The template's ty hook, as template/.pre-commit-config.yaml.jinja explains: ty-pre-commit
       # skips every file with a PEP 723 header, which is bootstrap.py. pyproject.toml excludes
       # template/ from it.
       - id: ty
         name: ty
-        entry: uv run --with ty==0.0.84 ty check
+        entry: uv run --with ty ty check
         language: system
         types_or: [python, pyi]
         pass_filenames: false
