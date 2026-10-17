@@ -173,3 +173,17 @@ def test_a_blank_author_email_is_left_out(copie: Copie) -> None:
     pyproject = (result.project_dir / "pyproject.toml").read_text(encoding="utf-8")
     authors = tomllib.loads(pyproject)["project"]["authors"]
     assert authors == [{"name": SHARED_ANSWERS["author_name"]}]
+
+
+@requires_uv
+@pytest.mark.parametrize("licence", ["MIT", "Apache-2.0", "Proprietary"])
+def test_a_blank_holder_leaves_no_trailing_space(copie: Copie, licence: str) -> None:
+    """A blank author defaults the holder to blank; `trailing-whitespace` would rewrite the line."""
+    answers = {**SHARED_ANSWERS, "author_name": "", "license": licence}
+    result = copie.copy(extra_answers=answers, template_dir=REPO_ROOT)
+    assert result.exception is None, f"copier raised: {result.exception}"
+    assert result.project_dir is not None
+    licence_text = (result.project_dir / "LICENSE").read_text(encoding="utf-8")
+    copyright_line = next(line for line in licence_text.splitlines() if "Copyright" in line)
+    assert copyright_line == copyright_line.rstrip(), repr(copyright_line)
+    assert " ." not in copyright_line, repr(copyright_line)

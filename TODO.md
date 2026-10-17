@@ -137,10 +137,6 @@ Neither repo pins its toolchain now (after step 3's push): uv, prek, copier and 
 their latest (uv 0.13.1, prek 0.5.5, copier 9.19.1, ruff 0.17.1, ty 0.0.89, rumdl 0.3.0 on
 2026-10-18).
 
-Found on the way, not fixed: generating the base alone with a blank `author_name` writes
-`Copyright (c) 2026` with a trailing space into `LICENSE`, which `trailing-whitespace` rewrites on
-the first gate run. The tests always pass an author, so nothing catches it.
-
 Work runs sequentially, with no worktrees or side tracks. The rest of phase 8 waits behind phase 10
 so that nothing under `template/` moves twice.
 
@@ -152,7 +148,7 @@ real.
 The state to expect:
 
 - This repo is the base alone: `template/` and the root `copier.yml`. `tests/test_template.py`
-  holds three tests, two of which generate the base alone and run its gate (about thirty-five
+  holds four tests, two of which generate the base alone and run its gate (about thirty-five
   seconds together, five when every cache is warm); `uv run pytest` runs them,
   `prek run --all-files` is the whole gate. Finish a branch with
   `uv run python template/tools/finish_branch.py --no-tests "<type(scope): summary>"`.
