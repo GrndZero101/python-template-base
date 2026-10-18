@@ -6,9 +6,29 @@ new session would otherwise relearn. The detail of finished work is in `git log`
 
 ## Next up
 
-**Next: ask the author what comes next.** The candidates are phase 10's "Later in the phase"
-(`python-canary-base` to exercise the uv-script skill, and `python-template-cli-stdlib` seeded
-from `archive/cli-stdlib`) and the rest of phase 8. Ask before starting either.
+**Next: the first real project, on Windows native** (chosen by the author on 2026-10-18). It is
+built in its own repo, generated from `gh:GrndZero101/python-template-cli-typer`, and its job here
+is to flush out what Windows breaks. Findings come back as template fixes made from a session in
+these repos, never as edits to the project's base-owned files (those conflict on the next
+`copier update`); a blocker patched locally there is marked to upstream. Fixes reach the project by
+its normal update, base first, which also tests the update path on Windows. Before it started:
+`.gitattributes` (`eol=lf`, shipped and at both repos' roots, `430fb0e`, and `631a247` in the CLI
+repo), and the first Windows CI run since 2026-10-15, which failed three of the base's own tests on
+paths and passed everything that ships (fixed in `6b7255b`). Watch, none of it tried on Windows:
+
+- **Setup.** `bootstrap.sh` needs `sh` and installs uv with the Unix installer. On Windows native,
+  install uv with `irm https://astral.sh/uv/install.ps1 | iex`, then try `uv run bootstrap.py
+  setup` without the shim, or `uv tool install copier` and `prek` by hand. Either way, record what
+  happened: it decides whether the helper needs a Windows path.
+- **The hooks in a real interactive session.** CI proved only that exec-form `uv` and `git`
+  resolve.
+- **DebugMCP**: the `cmd /c` registration and both adapters launching through `uv`.
+- **typer's PowerShell completion.**
+- **An update with a real conflict**, still unproven in any consumer.
+
+Still candidates after it, ask first: phase 10's "Later in the phase" (`python-canary-base` to
+exercise the uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`)
+and the rest of phase 8.
 
 **Shipped CI is closed** (2026-10-18): the canary answers `ci: github` and its first run on GitHub
 passed. Phase 8's first item has the detail.
