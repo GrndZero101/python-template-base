@@ -21,8 +21,8 @@ the same for `user.email`.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh     # then open a new shell, so uv is on PATH
-uv tool install copier
-uv tool install prek
+uv tool install --upgrade copier     # installs it, or upgrades one already there
+uv tool install --upgrade prek
 copier copy --trust gh:GrndZero101/python-template-cli-typer my-project     # answer the prompts
 cd my-project
 ```
@@ -33,8 +33,8 @@ cd my-project
 winget install --id Git.Git -e      # git, if you have none
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 # open a new terminal, so uv is on PATH
-uv tool install copier
-uv tool install prek
+uv tool install --upgrade copier     # installs it, or upgrades one already there
+uv tool install --upgrade prek
 copier copy --trust gh:GrndZero101/python-template-cli-typer my-project     # answer the prompts
 cd my-project
 ```
@@ -57,8 +57,9 @@ above have not yet been walked through end to end on a fresh machine.
 `uv` at its latest, installed by
 [the standalone installer](https://docs.astral.sh/uv/getting-started/installation/), so that
 `uv self update` works; then copier and prek as uv tools. From a clone of this repo, the setup
-helper does all of it. It is a POSIX `sh` script, for Linux, macOS and WSL; on Windows native,
-install the tools as the Quickstart does:
+helper does all of it. The shim is a POSIX `sh` script, for Linux, macOS and WSL. On Windows
+native, install the tools as the Quickstart does. The script behind the shim runs there on its own:
+`uv run bootstrap.py doctor` works, and `setup` has not been tried there yet.
 
 ```bash
 sh bootstrap.sh setup           # install or upgrade copier and prek, write copier's settings

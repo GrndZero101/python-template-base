@@ -25,9 +25,11 @@ _external_data:
 _skip_if_exists:
   - pyproject.toml
 
+# No destination path: under a use case the base is copied into `.`, which printed as
+# "applied to ..". Plain ASCII: piped through Windows PowerShell, an em dash here came out as `?`.
 _message_after_copy: |
-  Base layer applied to {{ _copier_conf.dst_path }}. Read CLAUDE.md first — the rules there are
-  enforced by a gate, not by convention alone.
+  Base layer applied. Read CLAUDE.md first: the rules there are enforced by a gate, not by
+  convention alone.
 
 # ---------------------------------------------------------------------------
 # Questions shared with every use case
