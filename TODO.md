@@ -16,12 +16,17 @@ its normal update, base first, which also tests the update path on Windows. Befo
 repo), and the first Windows CI run since 2026-10-15, which failed three of the base's own tests on
 paths and passed everything that ships (fixed in `6b7255b`). Watch, none of it tried on Windows:
 
-- **Setup.** Both template READMEs now open with a Quickstart for Linux, macOS or WSL and for
-  Windows (PowerShell), and the generated README's Setup covers both (2026-10-18). Only the
-  copier-settings snippet has been run on Windows (PowerShell 5.1, via WSL interop: no BOM, parses);
-  the install steps are from uv's and copier's docs. Walk them on the project's machine and fix the
-  READMEs from what happens. `bootstrap.sh` needs `sh`, which the base README now says; whether
-  `uv run bootstrap.py setup` works without the shim decides if the helper needs a Windows path.
+- **Setup: walked on Windows native** (2026-10-18), from WSL through `powershell.exe` (Windows
+  PowerShell 5.1), on the author's machine, in a throwaway folder under `%TEMP%`. The Quickstart's
+  steps from `uv tool install` on, as written: generation from `gh:` took 14 s with every task
+  passing, no file came out CRLF, the gate passed in 11 s and the tests in 14 s, `git switch` and the
+  CLI's `--help` worked, and `uv run <raw URL>/bootstrap.py doctor` ran without the shim and found
+  copier's settings at `%LOCALAPPDATA%\copier\settings.yml`, as the READMEs say. Fixed from it:
+  `uv tool install` leaves an installed tool where it is (prek was at 0.4.14), so every README now
+  says `uv tool install --upgrade`; the base's after-copy message said "applied to .." and its em
+  dash came out as `?` through the pipe. **Not walked:** a fresh uv install (uv was already
+  there; `uv self update` stood in), copier's interactive prompts, `setup` (it writes the real
+  settings file), and anything in a Claude Code session.
 - **The hooks in a real interactive session.** CI proved only that exec-form `uv` and `git`
   resolve.
 - **DebugMCP**: the `cmd /c` registration and both adapters launching through `uv`.
