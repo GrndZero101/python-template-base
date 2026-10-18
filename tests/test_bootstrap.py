@@ -7,6 +7,7 @@ a real command; tests/test_bootstrap_sh.py runs the helper for real, through the
 
 import dataclasses
 import functools
+import shlex
 import subprocess
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -571,7 +572,9 @@ def test_a_layer_is_named_for_its_repository(source: str, name: str) -> None:
 
 def test_a_rerun_repeats_what_was_asked() -> None:
     run = UpdateRun(Path("/p"), ("--defaults", "--data", "a=b c"), finish=True)
-    assert run.rerun().endswith(f"update {Path('/p')} --finish -- --defaults --data 'a=b c'")
+    # Quoted for `sh`, which a Windows path needs: its backslashes are escapes there.
+    project = shlex.quote(str(Path("/p")))
+    assert run.rerun().endswith(f"update {project} --finish -- --defaults --data 'a=b c'")
 
 
 def test_main_update_commits_each_layer_on_a_branch_and_reports_both(
@@ -663,7 +666,7 @@ def test_main_update_stops_at_a_conflict_on_the_branch_and_says_how_to_carry_on(
     assert f'git commit -m "chore(template): update python-template-base to {MOVED_TO}"' in (
         captured.err
     )
-    assert f"update {project} -- --defaults" in captured.err
+    assert f"update {shlex.quote(str(project))} -- --defaults" in captured.err
 
 
 def test_main_update_stops_when_uv_sync_fails(tmp_path: Path) -> None:

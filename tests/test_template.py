@@ -186,7 +186,7 @@ def test_uv_script_reference_passes_the_gate_where_the_recipe_puts_it(copie: Cop
     broken = _run(GATE, project)
     report = f"{broken.stdout}\n{broken.stderr}"
     assert broken.returncode != 0, "a type error in a uv script passed the gate"
-    assert f"scripts/{SCRIPT_NAME}" in report, report
+    assert str(Path("scripts") / SCRIPT_NAME) in report, report
 
 
 @requires_uv
