@@ -16,10 +16,12 @@ its normal update, base first, which also tests the update path on Windows. Befo
 repo), and the first Windows CI run since 2026-10-15, which failed three of the base's own tests on
 paths and passed everything that ships (fixed in `6b7255b`). Watch, none of it tried on Windows:
 
-- **Setup.** `bootstrap.sh` needs `sh` and installs uv with the Unix installer. On Windows native,
-  install uv with `irm https://astral.sh/uv/install.ps1 | iex`, then try `uv run bootstrap.py
-  setup` without the shim, or `uv tool install copier` and `prek` by hand. Either way, record what
-  happened: it decides whether the helper needs a Windows path.
+- **Setup.** Both template READMEs now open with a Quickstart for Linux, macOS or WSL and for
+  Windows (PowerShell), and the generated README's Setup covers both (2026-10-18). Only the
+  copier-settings snippet has been run on Windows (PowerShell 5.1, via WSL interop: no BOM, parses);
+  the install steps are from uv's and copier's docs. Walk them on the project's machine and fix the
+  READMEs from what happens. `bootstrap.sh` needs `sh`, which the base README now says; whether
+  `uv run bootstrap.py setup` works without the shim decides if the helper needs a Windows path.
 - **The hooks in a real interactive session.** CI proved only that exec-form `uv` and `git`
   resolve.
 - **DebugMCP**: the `cmd /c` registration and both adapters launching through `uv`.
