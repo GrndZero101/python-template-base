@@ -10,12 +10,55 @@ Generated projects get: the rule set, a `PreToolUse` guard that refuses edits to
 runs the tests before a turn can end, `ruff`/`ty`/`rumdl`/`prek` configured, a custom checker
 for the conventions no linter covers, and the shared Claude Code skills.
 
+## Quickstart
+
+Once per machine: git, uv, and copier and prek as uv tools. Then one command makes a project with
+the git repo, the venv and the hooks already wired. Generation makes the project's first commit, so
+git needs your name and email first, if it has none: `git config --global user.name "..."`, and
+the same for `user.email`.
+
+### Linux, macOS or WSL
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh     # then open a new shell, so uv is on PATH
+uv tool install copier
+uv tool install prek
+copier copy --trust gh:GrndZero101/python-template-cli-typer my-project     # answer the prompts
+cd my-project
+```
+
+### Windows (PowerShell)
+
+```powershell
+winget install --id Git.Git -e      # git, if you have none
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+# open a new terminal, so uv is on PATH
+uv tool install copier
+uv tool install prek
+copier copy --trust gh:GrndZero101/python-template-cli-typer my-project     # answer the prompts
+cd my-project
+```
+
+### Then, on either
+
+Check the project and start work:
+
+```bash
+prek run --all-files --skip no-commit-to-branch   # should be all green
+uv run pytest
+git switch -c feat/first-thing                    # never work on main
+```
+
+CI generates projects and runs their gate and tests on Windows, but the Windows install steps
+above have not yet been walked through end to end on a fresh machine.
+
 ## Prerequisites
 
 `uv` at its latest, installed by
 [the standalone installer](https://docs.astral.sh/uv/getting-started/installation/), so that
 `uv self update` works; then copier and prek as uv tools. From a clone of this repo, the setup
-helper does all of it:
+helper does all of it. It is a POSIX `sh` script, for Linux, macOS and WSL; on Windows native,
+install the tools as the Quickstart does:
 
 ```bash
 sh bootstrap.sh setup           # install or upgrade copier and prek, write copier's settings
@@ -86,9 +129,9 @@ to both layers' updates, `-d ci=github`; a layer given no answer keeps the one i
 
 **Answer your name and email once.** Copier reads a personal settings file and offers its
 `defaults` as the default answer to any question of the same name, in every template. It lives at
-`~/.config/copier/settings.yml` on Linux and `~/Library/Application Support/copier/settings.yml`
-on macOS, or wherever `COPIER_SETTINGS_PATH` says. To fill it from your git identity, if you have
-none yet (on macOS, use that path instead):
+`~/.config/copier/settings.yml` on Linux, `~/Library/Application Support/copier/settings.yml`
+on macOS and `%LOCALAPPDATA%\copier\settings.yml` on Windows, or wherever `COPIER_SETTINGS_PATH`
+says. To fill it from your git identity, if you have none yet (on macOS, use that path instead):
 
 ```bash
 mkdir -p ~/.config/copier
@@ -97,6 +140,19 @@ defaults:
   author_name: "$(git config user.name)"
   author_email: "$(git config user.email)"
 EOF
+```
+
+On Windows, in PowerShell:
+
+```powershell
+$dir = "$env:LOCALAPPDATA\copier"
+New-Item -ItemType Directory -Force $dir | Out-Null
+$yaml = @"
+defaults:
+  author_name: "$(git config user.name)"
+  author_email: "$(git config user.email)"
+"@
+[IO.File]::WriteAllText("$dir\settings.yml", $yaml)    # UTF-8 without a BOM, in any PowerShell
 ```
 
 You are still asked; the file only changes what Enter accepts. An update keeps the answers you
