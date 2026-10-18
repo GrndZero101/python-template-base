@@ -33,7 +33,7 @@ same rules. What follows is only what differs at this level.
 **Every generated file has exactly one owner**: it is rendered by the base or by a use case, never
 both. Two templates rendering the same path conflict on `copier update` (markers in the file), so
 the split is by directory and a test in the CLI repo's suite checks it. The base owns `CLAUDE.md`,
-`tools/` and its tests, `.claude/settings.json`, `.pre-commit-config.yaml`, `.gitignore`,
+`tools/` and its tests, `.claude/settings.json`, `.pre-commit-config.yaml`, `.gitignore`, `.gitattributes`,
 `.python-version`, `LICENSE`, `.debugmcp.json`, `.vscode/`, `ruff-base.toml`, the skills
 `git-workflow`, `python-debug`, `python-cli` and `python-uv-script`, `.copier-answers.base.yml`,
 and `.github/workflows/ci.yml` when `ci` is `github`. The one exception is `pyproject.toml`, which

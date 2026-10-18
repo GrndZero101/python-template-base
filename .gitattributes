@@ -1,0 +1,4 @@
+# LF in the working tree on every OS, whatever `core.autocrlf` says, for this repo itself: a
+# Windows clone must still run `sh bootstrap.sh`, and copier renders a generated project from the
+# clone it makes, so CRLF here would become CRLF there. template/.gitattributes is what ships.
+* text=auto eol=lf

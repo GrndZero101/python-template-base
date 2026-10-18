@@ -190,6 +190,23 @@ def test_uv_script_reference_passes_the_gate_where_the_recipe_puts_it(copie: Cop
 
 
 @requires_uv
+def test_a_crlf_checkout_still_writes_lf(copie: Copie) -> None:
+    """Git for Windows usually sets `core.autocrlf=true`; `.gitattributes` must win over it.
+
+    The setting converts on checkout on any OS, so Linux reproduces what a Windows clone does.
+    """
+    project = _generate_base(copie)
+    _run(["git", "config", "core.autocrlf", "true"], project)
+    tracked = _run(["git", "ls-files", "-z"], project).stdout.split("\0")
+    for name in filter(None, tracked):
+        (project / name).unlink()
+    restored = _run(["git", "checkout", "--", "."], project)
+    assert restored.returncode == 0, restored.stderr
+    crlf = [name for name in filter(None, tracked) if b"\r\n" in (project / name).read_bytes()]
+    assert crlf == [], f"checked out as CRLF: {crlf}"
+
+
+@requires_uv
 def test_a_blank_author_email_is_left_out(copie: Copie) -> None:
     """`email = ""` is not an address; an author with none gets no `email` key at all."""
     answers = {**SHARED_ANSWERS, "author_email": ""}
