@@ -1,0 +1,8 @@
+# LF in the working tree on every OS, whatever `core.autocrlf` says. Git for Windows usually sets
+# it to `true`, which checks text files out as CRLF: a shell script then fails on `$'\r'`, and a
+# `copier update` compares CRLF files against LF renders. `text=auto` leaves binaries alone.
+* text=auto eol=lf
+
+# cmd.exe misreads a batch file with LF endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
