@@ -30,16 +30,34 @@ paths and passed everything that ships (fixed in `6b7255b`). Watch, none of it t
 - **The hooks in a real interactive session.** CI proved only that exec-form `uv` and `git`
   resolve.
 - **DebugMCP**: the `cmd /c` registration and both adapters launching through `uv`.
-- **typer's PowerShell completion.**
-- **An update with a real conflict**, still unproven in any consumer.
+- **typer's PowerShell completion.** Used in gdt: the `$PROFILE` line works only with its
+  `Remove-Item Env:`, which the CLI layer had lost and restored (`1493a40` there).
+- **An update with a real conflict**: proven by gdt's update, below.
 
 **gdt's first field report is acted on** (2026-10-21; gdt is that project, its log in gdt's memory,
-`template-findings.md`). The CLI layer's share is `959176e` there. The base's: the edit-time gate
-reports an unused import or undefined name without blocking (`deferred` in `.gate.log`; the stop
-gate and the commit still block), the `imported-all` convention rule, CLAUDE.md's line on a module
-split into many helpers, and S311 ignored under the tests. The CLI repo's session-doctor test no
-longer fails when the local uv is behind. **Not yet seen:** gdt taking these by `copier update`,
-base first, which is also the first update on Windows.
+`template-findings.md`, whose numbers are used here). The CLI layer's share is `959176e` there. The
+base's: the edit-time gate reports an unused import or undefined name without blocking (`deferred`
+in `.gate.log`; the stop gate and the commit still block), the `imported-all` convention rule,
+CLAUDE.md's line on a module split into many helpers, and S311 ignored under the tests. The CLI
+repo's session-doctor test no longer fails when the local uv is behind.
+
+**gdt has taken it by `copier update`** (2026-10-21, gdt's `c514494` and `c94f2ae`): the first
+update on Windows and the first with real conflicts. Base first, `7f69e01 -> 391ada5`, then the CLI
+layer, `bfa295e -> a7de06f`, with a commit between, since copier refuses a dirty tree. It closed
+findings 1–14. The base layer merged cleanly and its gate and tests passed straight away; the gate's
+`paused` state on conflict markers gave one clear message. The CLI layer conflicted in five files
+(`README.md`, `cli.py`, `config.py`, `test_completion.py`, `test_config.py`), each upstream adopting
+a fix gdt already had in its own words, resolved mostly to upstream's side. Findings 16–20 from the
+update are acted on in the CLI repo (`1493a40` there): `--defaults` from a shell that is not a real
+console, where copier's prompts raise `NoConsoleScreenBufferError` on Windows; the completion line
+above; a file-only-setting test that no longer names "the config file"; copier's two harmless
+Windows warnings named as noise; and a README warning that a project's local fix, once upstreamed,
+merges back as a **silent duplicate, not a conflict**. That is the field-report loop's lesson
+(finding 17): gdt's `_global_overrides` and upstream's both survived the three-way merge, the later
+one silently dropping `--workspace`, and only ruff's F811 caught it, because the names matched.
+**Still open, base side:** `.copier-answers.base.yml.jinja`'s comment lacks the `--defaults` note
+the CLI's answers file now has (finding 16), and, minor, `addopts` already carries `-q` in both
+templates' `pyproject.toml`, so `uv run pytest -q` loses the pass count (finding 21).
 
 Still candidates after it, ask first: phase 10's "Later in the phase" (`python-canary-base` to
 exercise the uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`)
