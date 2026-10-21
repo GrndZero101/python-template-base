@@ -225,6 +225,22 @@ VIOLATIONS = {
             return urls
         """,
     ),
+    "__all__ keeping an unused import alive": (
+        "imported-all",
+        """
+        import polars as pl
+
+        __all__ = ["pl"]
+        """,
+    ),
+    "__all__ of imported members, as a tuple": (
+        "imported-all",
+        """
+        from pathlib import Path, PurePath as Pure
+
+        __all__ = ("Path", "Pure")
+        """,
+    ),
 }
 
 EXEMPTIONS = {
@@ -424,6 +440,24 @@ def test_flags_each_violation_under_its_own_rule(tmp_path: Path, rule: str, sour
 @pytest.mark.parametrize("source", EXEMPTIONS.values(), ids=list(EXEMPTIONS))
 def test_allows_legitimate_definitions(tmp_path: Path, source: str) -> None:
     assert check_file(write_module(tmp_path, source)) == []
+
+
+def test_an_all_naming_something_defined_here_is_left_alone(tmp_path: Path) -> None:
+    source = """
+        from pathlib import Path
+
+        def load(path: Path) -> str:
+            return path.read_text()
+
+        __all__ = ["Path", "load"]
+    """
+    assert check_file(write_module(tmp_path, source)) == []
+
+
+def test_a_package_init_may_re_export_what_it_imports(tmp_path: Path) -> None:
+    init = tmp_path / "__init__.py"
+    init.write_text('from .core import run\n\n__all__ = ["run"]\n', encoding="utf-8")
+    assert check_file(init) == []
 
 
 def test_reports_immediate_parent_once(tmp_path: Path) -> None:

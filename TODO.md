@@ -33,6 +33,14 @@ paths and passed everything that ships (fixed in `6b7255b`). Watch, none of it t
 - **typer's PowerShell completion.**
 - **An update with a real conflict**, still unproven in any consumer.
 
+**gdt's first field report is acted on** (2026-10-21; gdt is that project, its log in gdt's memory,
+`template-findings.md`). The CLI layer's share is `959176e` there. The base's: the edit-time gate
+reports an unused import or undefined name without blocking (`deferred` in `.gate.log`; the stop
+gate and the commit still block), the `imported-all` convention rule, CLAUDE.md's line on a module
+split into many helpers, and S311 ignored under the tests. The CLI repo's session-doctor test no
+longer fails when the local uv is behind. **Not yet seen:** gdt taking these by `copier update`,
+base first, which is also the first update on Windows.
+
 Still candidates after it, ask first: phase 10's "Later in the phase" (`python-canary-base` to
 exercise the uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`)
 and the rest of phase 8.

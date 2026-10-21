@@ -3,7 +3,8 @@
 Ruff, ty and pylint between them have no rule for a `def` or `class` inside a function, a
 comprehension with two `for` clauses, `raise ... from None`, `getattr` with a computed name, a
 `main` that cannot be run, an exit that drops the exception it caught, an HTTP client built, or
-patched, anywhere but its factory, or a typer parameter declared in its default. These are the rules CLAUDE.md states and a weaker model forgets,
+patched, anywhere but its factory, a typer parameter declared in its default, or an `__all__` that
+exists only to keep an unused import alive. These are the rules CLAUDE.md states and a weaker model forgets,
 so they are checked rather than trusted. The rules themselves, their ids and the opt-out comment are in
 `convention_rules.py`.
 
