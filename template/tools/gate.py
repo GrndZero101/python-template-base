@@ -34,6 +34,12 @@ Three things keep what the agent reads short and true:
 - **No silent fail-open.** If prek cannot run at all, the edit still stands, but the agent is told
   the gate is off so it can tell the user, rather than carrying on as if it were checked.
 
+One kind of failure is reported without blocking: an unused import or an undefined name, and
+nothing else. A change spread over several edits passes through both — the import lands one edit
+ahead of its first use, or the use one edit ahead of its import — and blocking there sent the agent
+to "fix" a change it had not finished. The edit stands and the findings reach the agent as context.
+The stop gate and the commit still fail on them, so one left behind cannot reach `main`.
+
 Every run appends one line to `.gate.log` (see `gate_log.py`).
 """
 
@@ -41,12 +47,13 @@ import argparse
 import dataclasses
 import functools
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
-from gate_log import Entry, Outcome, failed_hooks, record
+from gate_log import HOOK_ID_LINE, Entry, Outcome, failed_hooks, record
 from hook_payload import find_gate_root, find_repo_root, notice, owning_repo, target_path
 
 BLOCK = 2
@@ -61,6 +68,13 @@ CONCISE_ENV = {"RUFF_OUTPUT_FORMAT": "concise", "TY_OUTPUT_FORMAT": "concise"}
 MODIFIED_MARK = "files were modified by this hook"
 # prek repeats each hook's description under its name; it is the same text on every run.
 DESCRIPTION_PREFIX = "- description: "
+# What a change half-way through several edits looks like, as ruff and ty name it. Only these are
+# deferred, and only from the hooks below; any other failure blocks as before.
+DEFERRED_RULES = frozenset({"unused-import", "undefined-name", "unresolved-reference"})
+DEFERRABLE_HOOKS = frozenset({"ruff-check", "ty"})
+# One finding in concise output: `path:line:col: rule-name: ...` from ruff, and
+# `path:line:col: error[rule-name] ...` from ty. A path may hold a drive letter's colon.
+FINDING_LINE = re.compile(r"^\s*\S.*?:\d+:\d+: (?:\w+\[(?P<ty>[\w-]+)\]|(?P<ruff>[\w-]+):)")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -162,6 +176,60 @@ def check(paths: Sequence[Path], root: Path, skip: str, runner: Runner) -> GateR
     return dataclasses.replace(runner(command, root), rerun=True)
 
 
+def _hook_sections(output: str) -> dict[str, list[str]]:
+    """Group the lines of prek's report under the id of the hook that printed them.
+
+    Each hook's name line precedes its id, so it lands at the end of the hook before. It is no
+    finding, so where it lands does not matter.
+    """
+    sections: dict[str, list[str]] = {}
+    current: list[str] = []
+    for line in output.splitlines():
+        match = HOOK_ID_LINE.match(line)
+        if match is None:
+            current.append(line)
+        else:
+            current = sections.setdefault(match.group(1), [])
+    return sections
+
+
+def _rules(lines: list[str]) -> set[str]:
+    """Return the rule named by each finding among `lines`."""
+    rules: set[str] = set()
+    for line in lines:
+        match = FINDING_LINE.match(line)
+        if match is not None:
+            rules.add(match.group("ty") or match.group("ruff"))
+    return rules
+
+
+def deferred_only(result: GateResult) -> bool:
+    """Return whether every failure in `result` is a finding the edit-time gate only reports.
+
+    A failed hook with no finding it can read — a crash, a config error — counts as a real failure.
+    """
+    if not result.ran or result.code == 0:
+        return False
+    sections = _hook_sections(result.output)
+    if not sections:
+        return False
+    for hook, lines in sections.items():
+        rules = _rules(lines)
+        if hook not in DEFERRABLE_HOOKS or not rules or not rules <= DEFERRED_RULES:
+            return False
+    return True
+
+
+def deferred_notice(output: str) -> str:
+    """Return the non-blocking reply for findings an unfinished change passes through."""
+    context = (
+        "Not blocked, but not clean: an unused import or an undefined name, which a change made "
+        "over several edits passes through. Finish the change. Any still here when you stop fail "
+        f"the stop gate and the commit.\n{condense(output)}"
+    )
+    return notice("PostToolUse", context)
+
+
 def skipped_notice(reason: str) -> str:
     """Return the non-blocking reply that tells the agent, and the user, the gate is off."""
     message = (
@@ -175,6 +243,8 @@ def outcome_of(result: GateResult) -> Outcome:
     """Classify a gate result for the log."""
     if not result.ran:
         return "skipped"
+    if deferred_only(result):
+        return "deferred"
     if result.code != 0:
         return "block"
     return "fixed" if result.rerun else "pass"
@@ -186,6 +256,9 @@ def respond(result: GateResult) -> int:
         sys.stdout.write(f"{skipped_notice(result.output)}\n")
         return 0
     if result.code == 0:
+        return 0
+    if deferred_only(result):
+        sys.stdout.write(f"{deferred_notice(result.output)}\n")
         return 0
     sys.stderr.write(f"{condense(result.output)}\n")
     return BLOCK

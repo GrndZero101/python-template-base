@@ -27,6 +27,14 @@ PASS = GateResult(code=0, output="")
 GATE_FAIL = GateResult(
     code=1, output="ruff check....Failed\n- hook id: ruff-check\n  src/x.py:1:1: F401 unused"
 )
+# What the edit-time gate only reports, as ruff prints it there: it must still block a stop.
+UNUSED_IMPORT = GateResult(
+    code=1,
+    output=(
+        "ruff check....Failed\n- hook id: ruff-check\n"
+        "  src/x.py:1:8: unused-import: `os` imported but unused"
+    ),
+)
 TESTS_FAIL = GateResult(code=1, output="F\nFAILED tests/test_x.py::test_x - assert 1 == 2")
 PREK_MISSING = GateResult(code=0, output="cannot run prek", ran=False)
 
@@ -156,6 +164,16 @@ def test_a_gate_failure_blocks_and_names_the_finding(
     assert "[tests" not in err
     entry = _log(root)[0]
     assert (entry["outcome"], entry["failed"]) == ("block", ["ruff-check"])
+
+
+def test_an_unused_import_the_edit_gate_let_through_blocks_here(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The edit-time gate defers it to a later edit; by the stop, that edit is overdue."""
+    _project(tmp_path, monkeypatch, "src/x.py")
+    _stopping(monkeypatch)
+    assert _run_main({"git diff": _changes("src/x.py"), "prek run": UNUSED_IMPORT}, []) == 2
+    assert "`os` imported but unused" in capsys.readouterr().err
 
 
 def test_a_test_failure_blocks_and_shows_the_summary(

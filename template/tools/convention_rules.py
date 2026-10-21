@@ -17,6 +17,7 @@ listed, separated by commas — and the comment beside it should say why.
 | `patched-httpx` | `patch`, `patch.object` or `setattr` aimed at httpx itself |
 | `silent-exit` | an exit raised from an `except` that never reports the exception it caught |
 | `typer-default` | `typer.Option(...)` or `typer.Argument(...)` as a parameter's default |
+| `imported-all` | an `__all__` outside `__init__.py` that names only imported names |
 """
 
 import ast
@@ -49,6 +50,8 @@ CLIENT_FACTORY = "build_client"
 PATCHERS = frozenset({"patch", "object", "setattr"})
 EXIT_EXCEPTIONS = frozenset({"Exit", "Abort", "SystemExit"})
 TYPER_PARAMETERS = frozenset({"Option", "Argument"})
+# A package's `__init__.py` re-exports what it imports; that is what its `__all__` is for.
+PACKAGE_INIT = "__init__.py"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -466,6 +469,46 @@ def typer_default_hits(tree: ast.Module) -> list[Hit]:
     return hits
 
 
+def _module_imports(tree: ast.Module) -> set[str]:
+    """Return the names the module's top-level imports bind."""
+    bound: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            bound.update((alias.asname or alias.name).split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            bound.update(alias.asname or alias.name for alias in node.names)
+    return bound
+
+
+def _all_assignment(tree: ast.Module) -> tuple[int, list[str]] | None:
+    """Return the line of a top-level `__all__ = [...]` and the names it lists, if there is one."""
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.List | ast.Tuple):
+            continue
+        targets = [target.id for target in node.targets if isinstance(target, ast.Name)]
+        if "__all__" not in targets:
+            continue
+        names = [elt.value for elt in node.value.elts if isinstance(elt, ast.Constant)]
+        return node.lineno, [name for name in names if isinstance(name, str)]
+    return None
+
+
+def imported_all_hits(tree: ast.Module) -> list[Hit]:
+    """Return an `imported-all` hit for an `__all__` that lists only what the module imports."""
+    assignment = _all_assignment(tree)
+    if assignment is None:
+        return []
+    line, names = assignment
+    if not names or not set(names) <= _module_imports(tree):
+        return []
+    message = (
+        "`__all__` here lists only imported names, which keeps an unused import alive without "
+        "using it. Delete an import nothing uses; re-export from the package's `__init__.py`."
+    )
+    detail = f"`__all__` names {', '.join(f'`{name}`' for name in names)}."
+    return [Hit(line, "imported-all", message, detail)]
+
+
 RULES: tuple[Callable[[ast.Module], list[Hit]], ...] = (
     scope_hits,
     comprehension_hits,
@@ -476,7 +519,15 @@ RULES: tuple[Callable[[ast.Module], list[Hit]], ...] = (
     patch_hits,
     exit_hits,
     typer_default_hits,
+    imported_all_hits,
 )
+
+
+def _rules_for(path: Path) -> tuple[Callable[[ast.Module], list[Hit]], ...]:
+    """Return the rules that apply to `path`: all of them, but `imported-all` in a package init."""
+    if path.name == PACKAGE_INIT:
+        return tuple(rule for rule in RULES if rule is not imported_all_hits)
+    return RULES
 
 
 def suppressed(line: str, rule: str) -> bool:
@@ -496,7 +547,7 @@ def check_source(path: Path, source: str) -> list[Finding]:
         return []  # ruff already reports syntax errors; don't double-report
     lines = source.splitlines()
     findings: list[Finding] = []
-    for rule in RULES:
+    for rule in _rules_for(path):
         for hit in rule(tree):
             text = lines[hit.line - 1] if 0 < hit.line <= len(lines) else ""
             if not suppressed(text, hit.rule):

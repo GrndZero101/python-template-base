@@ -3,7 +3,9 @@
 Enforced by a PostToolUse hook that auto-formats, then blocks on anything left. Violations block
 the edit — fix them, don't work around them. A Stop hook checks every file the branch has changed
 again, and runs the tests, before a turn can end, so a file changed by `sed` or a heredoc, or
-already committed, is caught too.
+already committed, is caught too. An unused import or an undefined name is the one exception at
+edit time: a change made over several edits passes through both, so the edit stands and they are
+reported. The Stop hook and the commit still block on them.
 
 ## Structure
 
@@ -18,6 +20,9 @@ already committed, is caught too.
   *Why: same reason, plus a fresh type object per call breaks `isinstance` and pickling.*
 - One responsibility per module. Several small modules beat one large one.
   *Why: an agent re-reads whole files; small files mean cheaper, more accurate edits.*
+- When the limits above split one job — reading a file format, say — into many small helpers, the
+  module docstring describes the overall flow: which function calls which, in what order.
+  *Why: fifteen helpers in a row say what each step does, never how the steps fit together.*
 - A one-file tool run with `uv run` is a *uv script*: `scripts/<name>.py` with a PEP 723 header,
   copied from the **python-uv-script** skill's reference. Its dependencies are declared in the
   header *and* the dev group, by `uv add`.
@@ -100,6 +105,7 @@ which rest on your own discipline.
 | No `getattr`/`setattr`/`delattr` with a computed name | `tools/check_conventions.py` `dynamic-attribute` |
 | A module defining `main` has an `if __name__ == "__main__":` block | `tools/check_conventions.py` `missing-main-guard` |
 | An exit from an `except` reports what it caught | `tools/check_conventions.py` `silent-exit` |
+| No `__all__` outside `__init__.py` listing only imports | `tools/check_conventions.py` `imported-all` |
 | Full annotations on public signatures | `ANN` + `ty` |
 | Docstrings on public functions/classes | `D101` `D102` `D103` |
 | No lambda assigned to a name | `E731` |
@@ -122,6 +128,7 @@ which rest on your own discipline.
 | `prek` installed and all three git shims present; `uv` at its latest | `tools/session_doctor.py` via `SessionStart` — reports, does not block |
 | Commit summary ≤72 chars, imperative | *convention — review only* |
 | One logical change per commit | *convention — review only* |
+| A module split into many helpers describes the flow in its docstring | *convention — review only* |
 | Name intermediates | *convention — review only* |
 | Dataclass over ad-hoc dict | *convention — review only* |
 | Inject clock/rng/client | *convention — review only* |

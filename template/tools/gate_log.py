@@ -7,7 +7,8 @@ JSON object:
      "failed": ["ruff-check"], "target": "src/pkg/x.py"}
 
 `outcome` is one of `pass`, `fixed` (failed only on prek's own auto-fixes and passed when re-run),
-`block`, `paused` (conflict markers present) and `skipped` (prek could not run). The file sits at
+`block`, `deferred` (failed only on findings the edit-time gate reports without blocking), `paused`
+(conflict markers present) and `skipped` (prek could not run). The file sits at
 the gate root and is gitignored. Writing it never blocks an edit: a failure is reported on stderr
 and the hook carries on.
 """
@@ -25,7 +26,7 @@ LOG_NAME = ".gate.log"
 # prek prints this line under every hook it reports as failed; with `--quiet` it reports no others.
 HOOK_ID_LINE = re.compile(r"^- hook id: (\S+)$", re.MULTILINE)
 
-Outcome = Literal["pass", "fixed", "block", "paused", "skipped"]
+Outcome = Literal["pass", "fixed", "block", "deferred", "paused", "skipped"]
 
 
 @dataclasses.dataclass(frozen=True)

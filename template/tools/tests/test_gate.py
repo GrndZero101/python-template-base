@@ -17,6 +17,7 @@ from gate import (
     build_command,
     check,
     condense,
+    deferred_only,
     find_conflicted,
     main,
     paused_message,
@@ -34,6 +35,20 @@ FAIL = GateResult(
 )
 FIXED = GateResult(code=1, output=f"ruff check....Failed\n- hook id: ruff-check\n- {MODIFIED_MARK}")
 MISSING = GateResult(code=0, output="cannot run prek: not found", ran=False)
+# prek's report on an import added one edit ahead of its use, and a use one edit ahead of its
+# import, as ruff and ty print it with the gate's concise output.
+HALF_DONE_RUFF = (
+    "ruff check....Failed\n- hook id: ruff-check\n- exit code: 1\n\n"
+    "  src/m.py:1:8: unused-import: `os` imported but unused\n"
+    "  src/m.py:6:12: undefined-name: Undefined name `json`\n"
+    "  Found 2 errors.\n"
+)
+HALF_DONE_TY = (
+    "ty....Failed\n- hook id: ty\n- exit code: 1\n\n"
+    "  src/m.py:6:12: error[unresolved-reference] Name `json` used when not defined\n"
+    "  Found 1 diagnostic\n"
+)
+HALF_DONE = GateResult(code=1, output=f"{HALF_DONE_RUFF}{HALF_DONE_TY}")
 # Built rather than written out, so this file never trips check-merge-conflict itself.
 OPENING_MARKER = "<" * 7 + " before updating"
 
@@ -160,6 +175,39 @@ def test_condense_drops_hook_descriptions() -> None:
     assert "- hook id: ruff-check" in condensed
 
 
+# --- deferred findings ------------------------------------------------------------------
+
+
+def test_an_unfinished_change_is_deferred() -> None:
+    assert deferred_only(HALF_DONE)
+
+
+def test_a_windows_path_is_read_as_a_path() -> None:
+    output = HALF_DONE_RUFF.replace("src/m.py", "C:\\work\\src\\m.py")
+    assert deferred_only(GateResult(code=1, output=output))
+
+
+def test_any_other_finding_alongside_still_blocks() -> None:
+    other = "  src/m.py:9:1: bare-except: Do not use bare `except`\n"
+    assert not deferred_only(GateResult(code=1, output=f"{HALF_DONE_RUFF}{other}"))
+
+
+def test_another_hook_failing_still_blocks() -> None:
+    rumdl = "rumdl check....Failed\n- hook id: rumdl\n- exit code: 1\n\n  README.md:3:1: MD001 x\n"
+    assert not deferred_only(GateResult(code=1, output=f"{HALF_DONE_RUFF}{rumdl}"))
+
+
+def test_a_failure_with_no_readable_finding_still_blocks() -> None:
+    """A crash or a config error names no rule, and must not pass for an unfinished change."""
+    crashed = "ty....Failed\n- hook id: ty\n- exit code: 2\n\n  ty failed: invalid config\n"
+    assert not deferred_only(GateResult(code=1, output=crashed))
+
+
+def test_a_passing_or_unrun_gate_is_not_deferred() -> None:
+    assert not deferred_only(PASS)
+    assert not deferred_only(MISSING)
+
+
 # --- entry point ------------------------------------------------------------------------
 
 
@@ -189,6 +237,26 @@ def test_failing_gate_blocks_with_exit_2_and_reports_on_stderr(
     assert "unsorted-imports" in captured.err
     assert "- description:" not in captured.err
     assert not captured.out
+
+
+def test_an_unfinished_change_stands_and_is_reported_as_context(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Blocking here sent the agent to "fix" an import whose use was its very next edit."""
+    _make_repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "sys.stdin.read", functools.partial(_stdin_returning, _payload(tmp_path / "x.py"))
+    )
+    assert main([], runner=functools.partial(_runner, HALF_DONE), scanner=_no_conflicts) == 0
+    captured = capsys.readouterr()
+    assert not captured.err
+    context = json.loads(captured.out)["hookSpecificOutput"]["additionalContext"]
+    assert "`os` imported but unused" in context
+    assert "unresolved-reference" in context
+    entry = json.loads((tmp_path / LOG_NAME).read_text(encoding="utf-8"))
+    assert entry["outcome"] == "deferred"
+    assert entry["failed"] == ["ruff-check", "ty"]
 
 
 def test_missing_prek_lets_the_edit_stand_but_says_so(

@@ -78,9 +78,16 @@ max-branches = 10
 max-returns = 6
 
 [lint.per-file-ignores]
-# Tests assert, use bare literals, and poke at internals — all fine there.
-"tests/**" = ["assert", "D", "ANN", "magic-value-comparison", "SLF"]
-"tools/tests/**" = ["assert", "D", "ANN", "magic-value-comparison", "SLF"]
+# Tests assert, use bare literals, and poke at internals — all fine there. They also seed their
+# own `random.Random(seed)`, as CLAUDE.md asks, which S311 would flag as weak cryptography.
+"tests/**" = [
+    "assert", "D", "ANN", "magic-value-comparison", "SLF",
+    "suspicious-non-cryptographic-random-usage",
+]
+"tools/tests/**" = [
+    "assert", "D", "ANN", "magic-value-comparison", "SLF",
+    "suspicious-non-cryptographic-random-usage",
+]
 # The checker's whole job is printing findings, to stderr.
 "tools/**" = ["T20"]
 # Invoking an external tool IS this module's purpose, so the subprocess warnings cannot be

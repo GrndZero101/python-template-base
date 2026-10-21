@@ -124,7 +124,8 @@ repos:
 
   # The CLAUDE.md conventions no native linter covers: `def` or `class` inside a function, complex
   # comprehensions, `raise ... from None`, computed `getattr`, a `main` with no guard, an exit that
-  # drops its cause, and the use case's own rules (httpx, typer) under `.claude/rules/`.
+  # drops its cause, an `__all__` of imports only, and the use case's own rules (httpx, typer) under
+  # `.claude/rules/`.
   # language: system so it shares the project interpreter and needs no isolated env.
   - repo: local
     hooks:
