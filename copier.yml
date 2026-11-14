@@ -64,6 +64,7 @@ python_version:
     - "3.12"
     - "3.13"
     - "3.14"
+    - "3.15"
 
 # What the licence is, and whose name is on it. The year is recorded when the project is generated.
 # A computed value is dropped from the answers file unless the answers-file template adds it back,
