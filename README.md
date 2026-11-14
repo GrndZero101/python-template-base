@@ -117,8 +117,8 @@ uv run pytest
 git switch -c feat/first-thing                    # never work on main
 ```
 
-On its own the base asks for: project name, author name and email, minimum Python version (3.12,
-3.13 or 3.14), licence (MIT, Apache-2.0 or Proprietary), the name on its copyright line, and CI
+On its own the base asks for: project name, author name and email, minimum Python version (3.12
+to 3.15), licence (MIT, Apache-2.0 or Proprietary), the name on its copyright line, and CI
 (`none` or `github`). Under a use case it asks none of these: it reads the use case's answers
 instead.
 

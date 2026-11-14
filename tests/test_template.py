@@ -133,6 +133,46 @@ def test_the_base_alone_is_a_project_that_passes_its_gate(copie: Copie) -> None:
     _gate_and_test(project)
 
 
+# The newest `python_version` copier.yml offers. The CLI repo's suite proves the floor; this proves
+# the top of the range on the base alone, where nothing from a use case can hide a gap.
+PYTHON_CEILING = "3.15"
+
+
+def _python_choices() -> list[str]:
+    """Read the `python_version` choices out of copier.yml, in order.
+
+    A regex rather than a YAML load: the file is Jinja-bearing copier config, and the block is
+    the one place its shape is fixed by this test.
+    """
+    text = (REPO_ROOT / "copier.yml").read_text(encoding="utf-8")
+    block = text.split("\npython_version:", 1)[1].split("\n\n", 1)[0]
+    return re.findall(r'^\s+- "(\d+\.\d+)"$', block, flags=re.MULTILINE)
+
+
+def test_the_ceiling_test_tracks_copier_yml() -> None:
+    """Adding a newer Python to copier.yml must move the ceiling test with it, not leave it behind."""
+    assert _python_choices()[-1] == PYTHON_CEILING
+
+
+@requires_uv
+@requires_prek
+def test_the_base_alone_works_at_the_python_ceiling(copie: Copie) -> None:
+    """A project that declares the newest Python must pass its gate and tests running on it.
+
+    The point is the dev dependencies: a new CPython ships before every compiled package has a
+    wheel for it, and a dependency without one makes `uv sync` build from source or fail.
+    """
+    answers = {**SHARED_ANSWERS, "python_version": PYTHON_CEILING}
+    result = copie.copy(extra_answers=answers, template_dir=REPO_ROOT)
+    assert result.exception is None, f"copier raised: {result.exception}"
+    assert result.project_dir is not None
+    project = result.project_dir
+    assert (project / ".python-version").read_text(encoding="utf-8").strip() == PYTHON_CEILING
+    _gate_and_test(project)
+    version = _run(["uv", "run", "python", "--version"], project)
+    assert version.stdout.startswith(f"Python {PYTHON_CEILING}."), version.stdout
+
+
 # The workflow `ci: github` renders, and the two commands it must run: the gate and the tests.
 WORKFLOW = Path(".github") / "workflows" / "ci.yml"
 WORKFLOW_COMMANDS = ("prek run --all-files", "uv run pytest")
