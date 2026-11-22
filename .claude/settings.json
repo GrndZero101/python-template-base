@@ -17,6 +17,7 @@
       "PowerShell(uv tool *)",
       "PowerShell(uv lock *)",
       "PowerShell(ruff *)",
+      "PowerShell(tp *)",
       "PowerShell(ty *)",
       "PowerShell(rumdl *)",
       "PowerShell(prek *)",
