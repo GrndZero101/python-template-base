@@ -185,6 +185,19 @@ an existing one. A repo adopting the guards therefore keeps its own `pyproject.t
 fallback's `[tool.*]` sections copied into it by hand — without them ruff misses the base's rules,
 and the hooks' own tests never run.
 
+**The fallback builds nothing**, so uv does not install the project into its venv, and a package
+under `src/` does not import, not even from `tests/`. With the first package, add a build backend
+to `pyproject.toml`, then `uv sync`; uv_build expects `src/<project_name in snake_case>/`:
+
+```toml
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+```
+
+The fallback leaves it out because a project with no package then fails `uv sync`: uv_build
+finds no module to build.
+
 **Documents already in the repo are not checked on the way in.** Generation's first commit takes
 whatever the directory holds before the shims exist, so the first `finish_branch.py` is the first
 gate they meet, and markdown written to other rules fails it. `rumdl fmt` fixes most of it, but under
