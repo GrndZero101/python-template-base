@@ -28,7 +28,9 @@ same rules. What follows is only what differs at this level.
 | `pyproject.toml` | Dev deps and lint config for the root. Not published, not importable. |
 | `bootstrap.sh`, `bootstrap.py` | The setup helper: a POSIX `sh` shim that installs or updates `uv`, then a uv script. Not shipped. |
 | `tests/test_bootstrap*.py` | The helper's tests: the shim against a stub `uv`, the script on a fake machine. |
-| `TODO.md` | Outstanding work on the template itself. Not shipped. |
+| `.plan/` | The `tp` store for all three repos' work: tasks, ADRs and notes. Not shipped. |
+| `.claude/skills/taskplan/` | How to work with `tp`, written by `tp init --claude`. Not shipped. |
+| `TODO.md` | `tp`'s board, regenerated on every write to the store. Never edited by hand. |
 
 **Every generated file has exactly one owner**: it is rendered by the base or by a use case, never
 both. Two templates rendering the same path conflict on `copier update` (markers in the file), so
@@ -74,7 +76,7 @@ What covers it instead is `tests/test_template.py`. It generates the base **alon
 verifies the thing that actually ships rather than the thing it is made from — and it costs about
 fifteen seconds. It runs at commit, and only when the commit touches something that can change a
 generated project: `template/`, `tests/`, `copier.yml`, `pyproject.toml` or `uv.lock`. A commit of
-`TODO.md` alone skips it. To skip it deliberately anyway:
+`.plan/` and `TODO.md` alone skips it. To skip it deliberately anyway:
 
 ```bash
 SKIP=generation-tests git commit -m "..."
@@ -148,12 +150,120 @@ uv run python template/tools/finish_branch.py --no-tests "feat(x): summary"
 It runs the root's whole gate before merging, generation test included: about fifteen seconds.
 `--no-tests` because that test *is* this repo's suite, so running it again would double it.
 
-## Sessions
+<!-- taskplan:begin -->
+## Task tracking
 
-Work is cut into sessions at checkpoints, which `TODO.md` defines under "Sessions and
-checkpoints" and names in each phase. At one, finish and merge the step, update `TODO.md` so a
-fresh session can start from it alone, then tell the user: "Checkpoint: start a new session", with
-the next step and the command that starts it, prompt included, as `TODO.md` shows. Don't carry on
-into the next step in the same session. A step that also changes the CLI repo runs in one session
-started here with `--add-dir ../python-template-cli-typer`; read that repo's `CLAUDE.md` before
-editing there.
+This repo tracks work with `tp` (see .claude/skills/taskplan). Never keep plans only in context.
+
+- Start of session / after compaction: `tp status`, then `tp next`.
+- Work one task at a time: `tp start ID` → implement → `tp done ID --commit-head`.
+- Record decisions and dead ends with `tp note ID "..."`.
+- If stuck after 2 attempts: `tp block ID --reason "..."` and move to `tp next`.
+- Never edit .plan/*.jsonl by hand.
+<!-- taskplan:end -->
+
+**One store for three repos.** `.plan/` here holds the work of this repo, of
+python-template-cli-typer and of the canary, each task tagged `base`, `cli` or `canary`
+(`tp list --tag cli`). A session started in the CLI repo or the canary reaches it with
+`--root ../python-template-base` or `TP_ROOT`; a verify command always runs from this root, so one
+for the CLI repo names `../python-template-cli-typer`. A field finding from a generated project
+becomes a task tagged by the layer it touches, with `--meta source=<project>`.
+
+- **Decisions are ADRs**: `tp doc list --kind adr`. D-0001 to D-0017 are the old decision log's D1
+  to D17, which code and tests cite by number; new ones carry on from there
+  (`tp doc new "D22: ..." --kind adr`). Anything waiting on an outside event is `blocked` with that
+  event as its reason.
+- **Read the note "Gotchas and working state"** (`tp doc list --kind note`) before a step that
+  touches copier, CI, the canary or Windows: it is what earlier sessions learned the hard way. Add
+  to it when something bites.
+- **`TODO.md` is generated** (`board_file` in `.plan/config.toml`). The root gate leaves it alone.
+- **The verify shell is `bash`.** On Windows native that is right from Claude Code's Bash tool (Git
+  Bash), but from PowerShell `bash` is WSL's, so the Windows user variable `TP_VERIFY_SHELL` names
+  `C:\Program Files\Git\bin\bash.exe` (D18). Write verify commands in POSIX `sh`.
+- tp's own Stop hook is not registered (`max_stop_blocks = 0`): the root's Stop gate is enough.
+
+## How work is judged
+
+- **Three goals** (2026-10-02): well-structured DevOps and QOL CLI tools; code a person can
+  maintain and step through; and token efficiency — a sonnet-class model builds a good tool cheaply
+  because the skills, tooling and hooks carry the knowledge. **Sonnet is the baseline**; haiku is an
+  occasional stretch run whose findings are acted on only when the fix is a cheap mechanical check
+  that helps any model.
+- **Machinery has a budget** (2026-10-04). Add a hook, module or stored state only for a defect
+  that actually reached `main`; prefer extending an existing check (`finish_branch.py`, the
+  `pre-merge-commit` hook, the stop gate) over a new one; and verify a reviewer's claim against the
+  code before acting on it.
+- **Prefer a mechanical check, a script or a copyable reference file** to more prose in
+  `CLAUDE.md` or a skill. A specific, greppable name in `CLAUDE.md` (`build_client`) steered haiku
+  where a docstring pointer did not.
+- **Done means**: the generation suite and `prek run --all-files` pass; anything that changes what
+  a skill tells a model has been run through a generated project's gate, not just read; and work
+  that changes what generated projects receive ends with a `copier update` of the canary.
+- **Format template code in a generated project before committing.** `template/` is not linted in
+  place, so a formatting slip surfaces only in the generation suite, at commit. Generate a scratch
+  project, copy the file in, `prek run ruff-format`, copy it back.
+
+## How work runs
+
+**Sequential: one session, one branch, one task at a time** (2026-10-15). No side tracks in git
+worktrees: the author reviews every decision and merge, so a second track mostly adds context
+switching; each session pays its own context, against goal 3; two local generation suites slow
+each other down and have failed tests that pass alone; and `finish_branch.py` ends by switching to
+`main`, which git refuses while another worktree has it checked out. Read-only work — a review, an
+audit — is still a session started where the files are.
+
+**A task in both template repos is one session** (2026-10-18), started here with
+`--add-dir ../python-template-cli-typer` (or `/add-dir` mid-session):
+
+- This repo's hooks, `CLAUDE.md`, skills and memory load as usual.
+- The CLI repo has no `.claude/` of its own, and the base's hooks skip a file in a sibling repo by
+  design (`owning_repo` in `hook_payload.py`), so its edits are ungated until commit. Its prek git
+  hooks still run at commit, and `finish_branch.py` gates it in full.
+- Its `CLAUDE.md` is not loaded for an added directory: read it before the first edit there.
+- Git there is `git -C ../python-template-cli-typer`. Its suite and its finish run inside it,
+  pointed at this checkout, each as one command:
+  `cd ../python-template-cli-typer && BASE_TEMPLATE_DIR=<base> uv run pytest`, and the same with
+  `uv run python <base>/template/tools/finish_branch.py --no-tests "<summary>"`.
+
+The order of work: the base half, then the CLI half, then the pushes, base first, and the base's CI
+rerun if it ran before the CLI half landed. Starting in the parent directory was rejected: it has
+no `.claude/settings.json` or `.git`, so no hook would run in either repo. The canary is driven from
+a session started in its own directory, since it has hooks of its own.
+
+## Sessions and checkpoints
+
+A long session gets slower and costlier per turn and drifts from what is written down; a fresh one
+reads only `CLAUDE.md`, memory and `tp`'s session-start brief. So work is cut into sessions at
+**checkpoints** (2026-10-15). At one: finish and merge the task, close it with `tp done`, and put
+whatever a fresh session needs on the next task (`tp note`, `tp edit --desc`) — the store is the
+hand-off, and a gap a fresh session finds is fixed there first. Then tell the user "Checkpoint:
+start a new session", with the next task and the command that starts it, prompt included, and stop.
+
+The prompt names the task by id and says what state it starts from (merged, pushed or not). Give the
+command for the host the author is on (since 2026-11-23, Windows native). For a task in both
+template repos, in PowerShell:
+
+```powershell
+cd C:\shares\projects\github\GrndZero101\python-template-base
+claude "Do T-NNNN (tp show T-NNNN). <state>" --add-dir ..\python-template-cli-typer
+```
+
+On Linux, macOS or WSL:
+
+```bash
+cd ~/projects/github/GrndZero101/python-template-base && \
+  claude "Do T-NNNN (tp show T-NNNN). <state>" --add-dir ../python-template-cli-typer
+```
+
+The prompt goes **before** `--add-dir`: that flag takes any number of directories, so a prompt
+after it is read as a second directory and the session opens with no prompt.
+
+A checkpoint falls:
+
+- at the end of any task that ends mergeable;
+- after a review is triaged and recorded — the session that made the decisions triages, since it
+  holds the evidence, and a fresh one carries them out;
+- when the next task needs another working directory: hooks, skills and memory all belong to the
+  directory a session started in. The CLI repo does not count, since it is added to a session here,
+  but the canary does;
+- when `/context` shows the session past about half its window, at the next mergeable point.

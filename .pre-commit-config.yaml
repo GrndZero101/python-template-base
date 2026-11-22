@@ -64,14 +64,16 @@ repos:
         language: system
         types: [markdown]
         require_serial: true
-        exclude: ^template/
+        # TODO.md is tp's board, regenerated on every write to .plan/: never hand-edited.
+        exclude: ^(template/|TODO\.md$)
       - id: rumdl
         name: rumdl check
         entry: uv run --no-project --with rumdl rumdl check
         language: system
         types: [markdown]
         require_serial: true
-        exclude: ^template/
+        # TODO.md is tp's board, regenerated on every write to .plan/: never hand-edited.
+        exclude: ^(template/|TODO\.md$)
 
       # The root's own Python is just the generation tests and the setup helper, but they are held
       # to the same rules. The fixer before the formatter: a fix can leave code that needs
