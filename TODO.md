@@ -90,11 +90,18 @@ CI runs green on Linux and macOS, and #1 closed with a comment listing every com
 waiting for the web app to show them: a second test suite (the gate and `finish_branch.py` run one
 `pytest`), and `PLR0913` against FastAPI handlers with several dependencies.
 
-**Next: a `copier update` of the canary**, since generated projects changed: MD076 and reflow
-rewrap its markdown, and `addopts` loses `-q`. A session started in the canary, base first, as
-"Next up" step 4 below did, through the setup helper.
+**The canary has taken #1 by `copier update`** (2026-11-23, from a session started in the
+canary): merged as `d3a04c3` and pushed. One run of `sh ../python-template-base/bootstrap.sh
+update . -- --defaults`, without `--finish`, committed both layers on `chore/template-update`,
+base first, `0d1446b -> da66891`, then the CLI's, `8c36415 -> 0d61a6b`. Neither conflicted.
+`--defaults` stood in for the real terminal step 4 below needed, so the agent's shell ran it
+whole. `git diff main` on both answers files showed `_commit` and the header comment alone
+moving, so copier answered nothing on its own. `-q` left `addopts`, `reflow = true` arrived, the
+markdown was rewrapped, and no file came out CRLF. Then `finish_branch.py` gated, tested and
+merged. The canary had **no git shims** at the session's start (the SessionStart doctor said so).
+`prek install` with all three fixed it before the update, so its commits were gated.
 
-**Then: the CLI suite on `pytest-xdist`** (asked for by the author on 2026-11-23, for local loops
+**Next: the CLI suite on `pytest-xdist`** (asked for by the author on 2026-11-23, for local loops
 on many-core workstations). The CLI repo's suite took about 9 minutes for 48 tests on Windows,
 nearly all of it waiting on `uv sync`, `prek` and `git` in per-test tmp dirs, so it should spread
 across cores. Add `pytest-xdist` to the CLI repo's dev group (`uv add --dev`) and `-n auto` to its
@@ -281,11 +288,11 @@ The state to expect:
   out the CLI's `main` before the CLI half is there. Push the CLI half straight after, then
   `gh run rerun <id> --failed` the base's run (2026-10-16, the blank `author_email`).
 - Nothing relies on GitHub's redirect from an old name. The canary is
-  `GrndZero101/python-canary-cli-typer`, public since 2026-10-15, at `afe247a` (the helper's
-  update, "Next up" step 4, pushed 2026-10-18). Its history was rewritten on 2026-10-15 (step 8),
+  `GrndZero101/python-canary-cli-typer`, public since 2026-10-15, at `d3a04c3` (the update after
+  issue #1, pushed 2026-11-23). Its history was rewritten on 2026-10-15 (step 8),
   so canary hashes from before that no longer exist anywhere. `.copier-answers.yml` names
-  `gh:GrndZero101/python-template-cli-typer` at `d6bac69`, and `.copier-answers.base.yml` names
-  `gh:GrndZero101/python-template-base` at `2cab442`. Its package
+  `gh:GrndZero101/python-template-cli-typer` at `0d61a6b`, and `.copier-answers.base.yml` names
+  `gh:GrndZero101/python-template-base` at `da66891`. Its package
   is `python_canary_cli_typer`; its script is still `tdf-cli`. The old `template-dogfood` memory
   directory and `~/.claude.json` entries are gone.
 - Renaming the directory left the `.venv` pointing at the old path (`Failed to spawn: pytest`):
