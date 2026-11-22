@@ -33,14 +33,14 @@ same rules. What follows is only what differs at this level.
 **Every generated file has exactly one owner**: it is rendered by the base or by a use case, never
 both. Two templates rendering the same path conflict on `copier update` (markers in the file), so
 the split is by directory and a test in the CLI repo's suite checks it. The base owns `CLAUDE.md`,
-`tools/` and its tests, `.claude/settings.json`, `.pre-commit-config.yaml`, `.gitignore`, `.gitattributes`,
-`.python-version`, `LICENSE`, `.debugmcp.json`, `.vscode/`, `ruff-base.toml`, the skills
-`git-workflow`, `python-debug`, `python-cli` and `python-uv-script`, `.copier-answers.base.yml`,
-and `.github/workflows/ci.yml` when `ci` is `github`. The one exception is `pyproject.toml`, which
-the use case owns: the base also renders a minimal one under `_skip_if_exists`, which copier never
-overwrites, so it reaches only a project that has none. The use case owns `pyproject.toml`,
-`README.md`, `src/`, `tests/`, `.copier-answers.yml`, `.claude/rules/cli-typer.md` and the skills
-`python-cli-typer`, `python-data` and `python-tui`.
+`tools/` and its tests, `.claude/settings.json`, `.pre-commit-config.yaml`, `.gitignore`,
+`.gitattributes`, `.python-version`, `LICENSE`, `.debugmcp.json`, `.vscode/`, `ruff-base.toml`, the
+skills `git-workflow`, `python-debug`, `python-cli` and `python-uv-script`,
+`.copier-answers.base.yml`, and `.github/workflows/ci.yml` when `ci` is `github`. The one exception
+is `pyproject.toml`, which the use case owns: the base also renders a minimal one under
+`_skip_if_exists`, which copier never overwrites, so it reaches only a project that has none. The
+use case owns `pyproject.toml`, `README.md`, `src/`, `tests/`, `.copier-answers.yml`,
+`.claude/rules/cli-typer.md` and the skills `python-cli-typer`, `python-data` and `python-tui`.
 
 A file under a `template/` — this one, or a use case's — carries a `.jinja` suffix only when it
 must name something the answers decide:
@@ -86,8 +86,8 @@ Copier includes uncommitted working-tree changes when the template is a local pa
 **The base layered under a use case is not checked locally.** That is the CLI repo's suite, which
 generates through the CLI template and runs the full gate, the hooks' tests and the update tests.
 Run it against an unpushed base change with `BASE_TEMPLATE_DIR=$PWD uv run pytest` in a clone of
-python-template-cli-typer. Most of what the base ships — the hooks, the gate, `finish_branch.py`, the
-licence — is exercised only that way.
+python-template-cli-typer. Most of what the base ships — the hooks, the gate, `finish_branch.py`,
+the licence — is exercised only that way.
 
 On a push that touches what `generation-tests` watches, the root gate's config or the workflow,
 `.github/workflows/ci.yml` runs the root gate on Linux, then on Linux and macOS this repo's suite

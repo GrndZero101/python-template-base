@@ -42,6 +42,7 @@ exclude = [".venv", "node_modules"]
 [tool.rumdl.MD013]
 code_blocks = false  # never wrap code
 tables = false
+reflow = true         # rumdl fmt wraps a long line, rather than only reporting it
 
 [tool.ty.src]
 exclude = [".claude"]  # see extend-exclude in ruff-base.toml

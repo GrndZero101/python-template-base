@@ -19,12 +19,12 @@ paths and passed everything that ships (fixed in `6b7255b`). Watch, none of it t
 - **Setup: walked on Windows native** (2026-10-18), from WSL through `powershell.exe` (Windows
   PowerShell 5.1), on the author's machine, in a throwaway folder under `%TEMP%`. The Quickstart's
   steps from `uv tool install` on, as written: generation from `gh:` took 14 s with every task
-  passing, no file came out CRLF, the gate passed in 11 s and the tests in 14 s, `git switch` and the
-  CLI's `--help` worked, and `uv run <raw URL>/bootstrap.py doctor` ran without the shim and found
-  copier's settings at `%LOCALAPPDATA%\copier\settings.yml`, as the READMEs say. Fixed from it:
-  `uv tool install` leaves an installed tool where it is (prek was at 0.4.14), so every README now
-  says `uv tool install --upgrade`; the base's after-copy message said "applied to .." and its em
-  dash came out as `?` through the pipe. **Not walked:** a fresh uv install (uv was already
+  passing, no file came out CRLF, the gate passed in 11 s and the tests in 14 s, `git switch` and
+  the CLI's `--help` worked, and `uv run <raw URL>/bootstrap.py doctor` ran without the shim and
+  found copier's settings at `%LOCALAPPDATA%\copier\settings.yml`, as the READMEs say. Fixed from
+  it: `uv tool install` leaves an installed tool where it is (prek was at 0.4.14), so every README
+  now says `uv tool install --upgrade`; the base's after-copy message said "applied to .." and its
+  em dash came out as `?` through the pipe. **Not walked:** a fresh uv install (uv was already
   there; `uv self update` stood in), copier's interactive prompts, `setup` (it writes the real
   settings file), and anything in a Claude Code session.
 - **The hooks in a real interactive session.** CI proved only that exec-form `uv` and `git`
@@ -166,8 +166,8 @@ first. Each step in its own session, in this order:
    CLI's new `main`, pushed seconds after.
 
 3. [x] **Unpin the other tools** (D16), both repos, merged 2026-10-18 from `build/unpin-tools`
-   (`62a0e67` here, `d6bac69` there), `main` pushed in both the same day. The branches were pushed first
-   and passed CI on Ubuntu and macOS in both repos, proving the `$GITHUB_PATH` step; they are
+   (`62a0e67` here, `d6bac69` there), `main` pushed in both the same day. The branches were pushed
+   first and passed CI on Ubuntu and macOS in both repos, proving the `$GITHUB_PATH` step; they are
    deleted from GitHub. Settled by trying each option in a generated project:
    - **Hook revs: local hooks through `uv run --no-project --with <tool>`, no version.** uv
      re-resolves on every run and trusts its cached copy of PyPI's simple page for its
