@@ -51,7 +51,7 @@ exclude = [".claude"]  # see extend-exclude in ruff-base.toml
 extra-paths = ["tools"]
 
 [tool.pytest.ini_options]
-addopts = "-x -q --tb=short"
+addopts = "-x --tb=short"
 strict_config = true                # a typo in this section is an error, not a silent no-op
 strict_markers = true               # an unregistered marker is an error, not a new marker
 strict_xfail = true                 # an xfail that starts passing fails, so it gets removed
