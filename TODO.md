@@ -55,9 +55,39 @@ Windows warnings named as noise; and a README warning that a project's local fix
 merges back as a **silent duplicate, not a conflict**. That is the field-report loop's lesson
 (finding 17): gdt's `_global_overrides` and upstream's both survived the three-way merge, the later
 one silently dropping `--workspace`, and only ruff's F811 caught it, because the names matched.
-**Still open, base side:** `.copier-answers.base.yml.jinja`'s comment lacks the `--defaults` note
-the CLI's answers file now has (finding 16), and, minor, `addopts` already carries `-q` in both
-templates' `pyproject.toml`, so `uv run pytest -q` loses the pass count (finding 21).
+Finding 16 is fixed: the base answers file's comment now has the `--defaults` note (2026-11-23).
+Finding 21 moves to the step below, since it touches both repos.
+
+**Issue #1, the base alone in a web-app repo, is acted on base side** (2026-11-23, branch
+`fix/issue-1-adoption-findings`): PowerShell twins for every `Bash(...)` permission, with a test
+that keeps them paired; README notes on running generation from an agent (`--skip-tasks`, then
+the tasks by hand), on documents already in an adopted repo, and on where a project's own
+permissions go; and the missing `[build-system]`, confirmed and documented rather than shipped,
+since uv_build fails `uv sync` with no package. Working on it also showed that **rumdl 0.3.5
+added MD076** (a list whose items hold blank lines separates every item with one), which failed
+every generated project's gate; the base is fixed (`4aa28b7`).
+
+**Next: the CLI repo's share, one session with `--add-dir ../python-template-cli-typer`.** In
+order:
+
+1. **MD076 in the CLI repo, urgent**: `rumdl check` finds 13 issues in 4 of its markdown files,
+   `python-cli-typer/SKILL.md` among them, so its generated projects fail their gate and its CI
+   is red. `rumdl fmt` fixes them all.
+2. **Finding 21**: drop `-q` from `addopts` in both templates' `pyproject.toml`.
+3. **rumdl `reflow = true`** under `[tool.rumdl.MD013]`, in both templates' `pyproject.toml`, so
+   the gate's `rumdl fmt` wraps long lines instead of only reporting them (#1, point 2). Tried in
+   a scratch copy: with `reflow-mode` left at `default` it rewraps no shipped file, only the
+   paragraphs of the root `CLAUDE.md` that hold a line past 100, which `rumdl check` passes
+   because the overflow is one word. It would then also wrap whatever an agent writes, at every
+   save. Decide, and if yes, set it in the root's `pyproject.toml` too and drop the README's
+   one-off reflow config.
+4. **A use case without `--trust`** (#1, point 1): the CLI template applies the base through a
+   task, which `--skip-tasks` skips. Work out and test the two-call form, and document it in the
+   CLI README beside the base's.
+
+Then close #1 with a comment listing the commits. Not acted on, waiting for the web app to show
+them: a second test suite (the gate and `finish_branch.py` run one `pytest`), and `PLR0913`
+against FastAPI handlers with several dependencies.
 
 Still candidates after it, ask first: phase 10's "Later in the phase" (`python-canary-base` to
 exercise the uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`)
