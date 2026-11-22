@@ -1,12 +1,13 @@
 # Plan board — python-template-base
 
-> 30 tasks · 1 done · 0 doing · 7 blocked
+> 31 tasks · 2 done · 0 doing · 7 blocked
 
-## M-0001 Faster suites for local loops (0/3)
+## M-0001 Faster suites for local loops (1/4)
 
-- [ ] T-0002 Check the CLI suite is safe to run under pytest-xdist
-- [ ] T-0003 Run the CLI repo's suite on pytest-xdist, timed against the 9 minutes — waiting on T-0002
+- [x] T-0002 Check the CLI suite is safe to run under pytest-xdist — done 2026-11-22
+- [ ] T-0003 Run the CLI repo's suite on pytest-xdist, timed against the 9 minutes
 - [ ] T-0004 Find out why Windows CI takes ten times Linux's time
+- [ ] T-0024 Share one default generation across the CLI suite's read-only tests — waiting on T-0003
 
 ## M-0002 Windows native: the first real project's untried paths (0/2)
 
