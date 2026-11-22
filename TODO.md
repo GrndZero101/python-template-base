@@ -92,6 +92,19 @@ base side's. Then a `copier update` of the canary, since generated projects chan
 on, waiting for the web app to show them: a second test suite (the gate and `finish_branch.py`
 run one `pytest`), and `PLR0913` against FastAPI handlers with several dependencies.
 
+**Then: the CLI suite on `pytest-xdist`** (asked for by the author on 2026-11-23, for local loops
+on many-core workstations). The CLI repo's suite took about 9 minutes for 48 tests on Windows,
+nearly all of it waiting on `uv sync`, `prek` and `git` in per-test tmp dirs, so it should spread
+across cores. Add `pytest-xdist` to the CLI repo's dev group (`uv add --dev`) and `-n auto` to its
+root `addopts`, then time a cold and a warm run against the 9 minutes, locally and on CI's 2-core
+runners, and keep it only if it holds up with no new flakiness. Check first: `base_checkout` is
+session-scoped, so it runs once per worker; prek's cache under a parallel cold run; and
+`test_the_setup_helper_updates_both_layers_on_a_branch`, which failed once in the full run on
+2026-11-23 and passed alone, possibly on the network. The base's own suite (~15 s) and generated
+projects are left out: worker startup eats the gain there, the `Stop` gate would pay it every
+turn, and xdist breaks `breakpoint()` and `tools/debug_pytest.py`. A project whose suite grows
+can add it itself; the `python-debug` skill could then mention `-n0`.
+
 Still candidates after it, ask first: phase 10's "Later in the phase" (`python-canary-base` to
 exercise the uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`)
 and the rest of phase 8.
