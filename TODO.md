@@ -102,6 +102,7 @@ first. Each step in its own session, in this order:
    failure only by generating at a version below the pin and updating to it. That needs a
    hard-coded earlier version with a `uv-pre-commit` tag, one more copy for every pin move. Moot
    after step 2, which leaves no pin to move.
+
 2. [x] **Unpin uv** (D16), both repos, base first. **The base half is merged** (2026-10-18,
    branch `build/unpin-uv`). Pushing it alone would fail the base's CI on the CLI's
    `test_every_copy_of_the_uv_pin_agrees_with_the_base`, which read the base's `UV_VERSION`. What
@@ -133,6 +134,7 @@ first. Each step in its own session, in this order:
    base-first reason reworded. Its suite passed against the unpushed base, 43 of 43. Both were
    pushed on 2026-10-18, base first; the base's run passed without a rerun, having checked out the
    CLI's new `main`, pushed seconds after.
+
 3. [x] **Unpin the other tools** (D16), both repos, merged 2026-10-18 from `build/unpin-tools`
    (`62a0e67` here, `d6bac69` there), `main` pushed in both the same day. The branches were pushed first
    and passed CI on Ubuntu and macOS in both repos, proving the `$GITHUB_PATH` step; they are
@@ -182,6 +184,7 @@ first. Each step in its own session, in this order:
      all three fixed it locally. Pushed on 2026-10-18, the base (`2cab442`) and the CLI straight
      after: the base's run passed with no rerun, both generation jobs having checked out the CLI's
      new `main`, and the CLI's run passed too.
+
 4. [x] **The canary's update, through the helper**, which closes the helper (2026-10-18, from a
    session started in the canary). Run in two passes, because `--finish` merges as soon as the
    last layer commits and leaves no moment to review: first
@@ -412,26 +415,35 @@ Open:
 Decided:
 
 - **D1** — `.python-version` rendered from the answer, 3.12–3.14, default 3.14.
+
 - **D2** — spec runs by hand, sonnet the baseline, reviewed by Opus (see "Spec runs").
+
 - **D3** — the git ritual is a script, `finish_branch.py`.
+
 - **D4** (2026-10-05, replacing 2026-10-04) — `cli-stdlib` is its own repo, not a type here. A
   scaffold built for it on 2026-10-05 is parked on the local branch `archive/cli-stdlib`
   (`4098f9e`) to seed that repo; delete the branch once it has.
+
 - **D6** (2026-10-05) — `data` and `tui` are recipe-first skills layered on the CLI, shipped to
   every project, not project types. **D7** (their order) is moot.
+
 - **D8** (2026-10-04) — the config file lives in `~/.config/<script>/` on macOS as on Linux,
   `XDG_CONFIG_HOME` honoured on every platform, `%APPDATA%` on Windows.
+
 - **D9** (2026-10-04) — a data command's JSON emits secrets raw, as `terraform output -json` and
   `gh auth token` do, via an explicit `.get_secret_value()`; incidental exposure — repr, logs,
   whole-model dumps such as `about` — is masked by `SecretStr`, as `gh auth status` and
   `kubectl config view` mask. Checked: pydantic-settings masks `repr` and
   `model_dump(mode="json")`.
+
 - **D10** (2026-10-04) — the config file is YAML, for flexibility as configs grow.
+
 - **D11** (2026-10-05) — **one project shape.** `project_type` branched `copier.yml`,
   `pyproject.toml`, the README and the tests, and the three unbuilt types' skills rotted unexercised
   (every one broke on a first attempt). Why not layer directories for two CLI scaffolds: `_exclude`
   matches rendered paths, so same-named modules needed Jinja-named directories, which the
   2026-10-05 attempt showed to be unreadable. Superseded across repos by D12.
+
 - **D12** (2026-10-15) — **layered templates.** A shared base template plus one thin template per
   use case, applied to the same project with separate answers files, as copier documents. A spike
   with two local templates proved it: one `copier copy` of the use case produced both layers, its
@@ -446,6 +458,7 @@ Decided:
   `CLAUDE.md` (base) plus `.claude/rules/<use case>.md`, which Claude Code loads at the same
   priority. Rejected: copying `tools/` per repo (drift), and vendoring the base into each use case
   as a subtree (a real update chain).
+
 - **D13** (2026-10-15) — **names, and no redirects.** This repo becomes `python-template-base`;
   use cases are `python-template-cli-typer` (today's scaffold), `-cli-stdlib`, `-api-fastapi`, and
   `js-template-web-vue` for the Vue front end in `~/tmp/operator/inventory-app-design-spec.md`.
@@ -456,6 +469,7 @@ Decided:
   updated, and nothing may rely on GitHub's redirect from an old name. "Dogfood" is retired for
   corporate use. The local directory moves too, and with it the Claude Code memory directory,
   which is keyed on the path.
+
 - **D14** (2026-10-15) — **licence is a question.** `template/LICENSE` ships "Copyright (c) 2026
   GrndZero101" literally, so every generated project names the template's author. The base asks
   `license` (MIT default, Apache-2.0, Proprietary) and `copyright_holder` (default `author_name`;
@@ -466,6 +480,7 @@ Decided:
   the answers-file template dumping
   `{{ dict(_copier_answers, copyright_year=copyright_year) | to_nice_yaml }}`. Checked: copier
   9.17 loads `strftime` by default.
+
 - **D15** (2026-10-15) — **the base on its own, and in a brownfield repo.** The base is a use case
   in itself: a skeleton with every guard for prototyping before the shape is known, or dropped
   into a brownfield repo with the least disruption. The 2026-10-15 review's proposed answers were
@@ -505,6 +520,7 @@ Decided:
   stop gates would fail a legacy codebase at the first save too. No machinery now: brownfield has
   not reached `main`. When it does: a `--changed-only` flag on `finish_branch.py` reusing
   `stop_gate.changed_files`, and `exclude` lists in the ty and rumdl config the adopter can edit.
+
 - **D16** (2026-10-17) — **the template never pins its toolchain.** uv, prek, copier and the
   gate's tools run at their latest, on users' machines and on CI alike, replacing the 2026-10-16
   pin-and-floor design under "Setup helper". There are no users to protect from an upgrade, and
@@ -513,6 +529,7 @@ Decided:
   sometimes break a run, which is fixed forward. The weekly CI run surfaces that. A downstream
   project that wants a frozen toolchain gets a `seal` command later (see "Later"); the template
   never seals itself.
+
 - **D17** (2026-10-18) — **CI is a question, and optional.** The base asks `ci`: `none` (the
   default) or `github`. The author will use the template where there is either no CI or GitLab CI,
   so GitHub Actions cannot be assumed. `none` renders nothing, which leaves a project free to add
@@ -610,6 +627,7 @@ each step on scratch copies first; the canary's update is the acceptance test.
 
 1. [x] **Settle D15**: accepted unamended (2026-10-15) and moved to "Decided".
    **Checkpoint C1**, reached.
+
 2. [x] **Assign every file an owner**, done by directory (2026-10-16). `template/` and the root
    `copier.yml` are the base; `use-cases/cli-typer/` (its own `copier.yml` and `template/`) is the
    CLI layer, and step 6 lifts it out with its history. The owners are in the root `CLAUDE.md`.
@@ -631,11 +649,13 @@ each step on scratch copies first; the canary's update is the acceptance test.
      includes uncommitted changes, so the tests no longer see only committed state.
    - New tests: each layer writes its own answers file; the use case keeps the `pyproject.toml` it
      wrote; each layer updates only its own files (D12's claim); the base alone passes its gate.
+
 3. [x] **Neutralise base-owned text that names the CLI** (2026-10-16). The typer and httpx rows
    and the sanctioned-patches sentence moved from the base `CLAUDE.md` to
    `use-cases/cli-typer/template/.claude/rules/cli-typer.md`; the `convention_rules.py` messages
    point at `.claude/skills/*/reference/` rather than a named skill, and `silent-exit`'s message
    covers stdlib logging as well as loguru. A generation test keeps those names out of the base.
+
 4. [x] **The mechanical checks** (2026-10-16), in `tests/test_template.py` under "the contract
    between the layers": the layers render no file in common but the base's `_skip_if_exists`; the
    two `copier.yml` files define every base question alike (type, help, choices) and the generated
@@ -643,6 +663,7 @@ each step on scratch copies first; the canary's update is the acceptance test.
    what the base relies on. The ruff keys forbidden beside `extend` are `select`, `ignore`,
    `per-file-ignores` and `unfixable`, not just the first two D15 named: each replaces a base
    list. Each check was shown to fail when its rule was broken.
+
 5. [x] **Licence questions** (D14, 2026-10-16). Both `copier.yml` files ask `license` (MIT,
    Apache-2.0, Proprietary) and `copyright_holder`, and compute `copyright_year`; both
    answers-file templates write the year back, so an update keeps it (a test edits the recorded
@@ -654,6 +675,7 @@ each step on scratch copies first; the canary's update is the acceptance test.
    repo's own.
    **Checkpoint C2**, reached: steps 2–5 are merged here, and the layering is rehearsed by the
    update tests and by scratch generations.
+
 6. [x] **New repo `python-template-cli-typer`**, public (read "Before step 6" below first). Done:
    both CIs green.
    **Seed it from this repo's history** —
@@ -662,6 +684,7 @@ each step on scratch copies first; the canary's update is the acceptance test.
    new repo. CI on three platforms against the base at `HEAD`; the base's CI checks it out and runs
    its generation suite against the base commit under test, through `base_template`.
    **Checkpoint C3**, reached.
+
 7. [x] **Rename** (D13): this repo to `python-template-base` on GitHub, the local directory, the
    remote URL and the Claude Code memory directory; then every reference to the old name. Done
    2026-10-15: the author renamed the repo, directory and remote by hand; the memory was copied
@@ -669,6 +692,7 @@ each step on scratch copies first; the canary's update is the acceptance test.
    commit message becoming `chore: generate project from python-template-base` and the root dev
    project `python-template-base-dev`.
    **Checkpoint C4, mandatory**: the session's directory no longer exists. Reached.
+
 8. [x] **Migrate the canary** to two answers files. Done 2026-10-15, C5 included. What the run
    showed:
    - Both copier commands took `--skip-tasks --defaults`. `--defaults` answers the questions added
@@ -738,6 +762,7 @@ each step on scratch copies first; the canary's update is the acceptance test.
      order (a repeated paragraph once), then their trailers once each as the last paragraph, where
      git reads them. The merge commit keeps the subject alone. Reaches the canary on its next base
      update.
+
 9. [x] **The uv-script skill** (2026-10-16): `python-uv-script` in the base, recipe-first like
    the stack skills, with `reference/yaml_to_json.py.jinja` and its test, which a generation test
    copies where the recipe says, gates, tests, then breaks with a type error to prove ty sees it.
