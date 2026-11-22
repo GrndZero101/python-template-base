@@ -11,6 +11,16 @@
       "Bash(rumdl:*)",
       "Bash(prek:*)",
       "Bash(copier:*)",
+      "PowerShell(uv run *)",
+      "PowerShell(uv add *)",
+      "PowerShell(uv sync *)",
+      "PowerShell(uv tool *)",
+      "PowerShell(uv lock *)",
+      "PowerShell(ruff *)",
+      "PowerShell(ty *)",
+      "PowerShell(rumdl *)",
+      "PowerShell(prek *)",
+      "PowerShell(copier *)",
       "mcp__context7__query-docs",
       "mcp__context7__resolve-library-id"
     ]
