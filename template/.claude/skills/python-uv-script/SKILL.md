@@ -35,6 +35,7 @@ They pass the gate and their tests exactly as copied (a generation test proves i
 1. **Rename** `yaml_to_json` to `<name>` in the test's import and its `SCRIPT` path, and replace
    the functions with yours, keeping the shape: the pieces as plain functions with every
    dependency a parameter, `main(argv) -> int`, the `__main__` block.
+
 2. **Declare each dependency twice**, by command, never by editing text:
 
    ```bash
@@ -44,7 +45,9 @@ They pass the gate and their tests exactly as copied (a generation test proves i
 
    A script that does not read YAML drops `pyyaml` the same way: `uv remove --script` and
    `uv remove --dev`.
+
 3. **Test** the pieces, then `main` through `capsys`, and keep the one smoke test (below).
+
 4. **Check:** `uv run pytest`, then `prek run --all-files`.
 
 ## The header

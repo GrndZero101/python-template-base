@@ -108,6 +108,25 @@ copier copy --trust gh:GrndZero101/python-template-base my-project
 `uv sync` and install the shims. Without it copier exits 4 with "Template uses potentially unsafe
 feature: tasks".
 
+**From an agent session**, `--trust` may be refused: Claude Code's auto mode can block it, even
+once you approve it, because it lets a fetched template run commands. Render without the tasks,
+then run them yourself, in `copier.yml`'s order. An agent cannot answer copier's prompts, so it
+passes `--defaults` and gives each answer with `-d`:
+
+```bash
+copier copy --skip-tasks --defaults -d project_name="My Project" \
+    gh:GrndZero101/python-template-base my-project
+cd my-project
+git init -b main
+uv sync
+git add -A
+git commit -m "chore: generate project from python-template-base"
+prek install -t pre-commit -t commit-msg -t pre-merge-commit
+```
+
+This covers the base alone. A use case applies the base through a task of its own, which
+`--skip-tasks` skips too.
+
 That is the whole setup. Generation already ran `git init -b main`, `uv sync`, the initial commit,
 and all three `prek` shims. Verify and start work:
 
@@ -165,6 +184,50 @@ It ships no source. `src/` and the tests beyond `tools/tests` are yours to write
 an existing one. A repo adopting the guards therefore keeps its own `pyproject.toml`, and needs the
 fallback's `[tool.*]` sections copied into it by hand — without them ruff misses the base's rules,
 and the hooks' own tests never run.
+
+**The fallback builds nothing**, so uv does not install the project into its venv, and a package
+under `src/` does not import, not even from `tests/`. With the first package, add a build backend
+to `pyproject.toml`, then `uv sync`; uv_build expects `src/<project_name in snake_case>/`:
+
+```toml
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+```
+
+The fallback leaves it out because a project with no package then fails `uv sync`: uv_build
+finds no module to build.
+
+**Documents already in the repo are not checked on the way in.** Generation's first commit takes
+whatever the directory holds before the shims exist, so the first `finish_branch.py` is the first
+gate they meet, and markdown written to other rules fails it. `rumdl fmt` fixes most of it, but under
+the shipped settings it only reports lines over 100 characters (MD013), and nothing rewrites a
+bold line used as a heading (MD036): change those to headings by hand. For the long lines, reflow
+once with a config kept outside the repo, on the first branch:
+
+```toml
+# reflow.toml
+[global]
+line-length = 100
+
+[MD013]
+line-length = 100
+code-blocks = false
+tables = false
+reflow = true
+```
+
+```bash
+uv run --no-project --with rumdl rumdl fmt --config ../reflow.toml docs/
+```
+
+**Permissions of the project's own** — a front end's package manager, `docker compose` — go in
+`.claude/settings.json` beside the base's. The base owns that file, but `copier update` merges it
+three ways, so added lines survive an update. It conflicts only where the template changed the
+lines next to them, and the gate's `check json` catches markers left in it. Claude Code reads no
+other tracked file for a project's permissions; `.claude/settings.local.json` is untracked, so
+each machine would repeat them. On Windows, give each `Bash(...)` rule a `PowerShell(...)` twin, as
+the base's do: a Bash rule never covers the PowerShell tool.
 
 ### Keeping it in sync with the template
 

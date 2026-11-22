@@ -4,6 +4,13 @@
 #
 # The tool settings below repeat in every use case's pyproject.toml, because pytest, ty and rumdl
 # take the first config file they find and merge nothing. A generation test keeps the two in step.
+#
+# There is no [build-system], so uv installs nothing of the project's own and a package under src/
+# does not import. With the first package, add one, then `uv sync`:
+#     [build-system]
+#     requires = ["uv_build>=0.13.0,<0.14.0"]
+#     build-backend = "uv_build"
+# It is left out because, with no package to build, it fails `uv sync`.
 [project]
 name = "{{ project_name | lower | replace(' ', '-') | replace('_', '-') }}"
 version = "0.1.0"

@@ -13,6 +13,7 @@ Not offline: generation runs `uv sync`, which reaches the network on a cold cach
 else is deterministic — fixed answers, a fresh tmp directory per test, no clock and no rng.
 """
 
+import json
 import os
 import re
 import shutil
@@ -152,6 +153,26 @@ def _python_choices() -> list[str]:
 def test_the_ceiling_test_tracks_copier_yml() -> None:
     """Adding a newer Python to copier.yml must move the ceiling test with it, not leave it behind."""
     assert _python_choices()[-1] == PYTHON_CEILING
+
+
+def test_every_bash_permission_has_a_powershell_twin() -> None:
+    """On Windows the agent also has a PowerShell tool, whose rules a `Bash(...)` rule never covers.
+
+    Without the twin, the same command is allowed through one tool and prompts through the other.
+    """
+    settings = json.loads(
+        (REPO_ROOT / "template" / ".claude" / "settings.json").read_text(encoding="utf-8")
+    )
+    allow = settings["permissions"]["allow"]
+    missing = []
+    for rule in allow:
+        match = re.fullmatch(r"Bash\((.+):\*\)", rule)
+        if match is None:
+            continue
+        twin = f"PowerShell({match.group(1)} *)"
+        if twin not in allow:
+            missing.append(twin)
+    assert missing == [], f"add {missing} to template/.claude/settings.json"
 
 
 @requires_uv
