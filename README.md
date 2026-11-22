@@ -125,7 +125,9 @@ prek install -t pre-commit -t commit-msg -t pre-merge-commit
 ```
 
 This covers the base alone. A use case applies the base through a task of its own, which
-`--skip-tasks` skips too.
+`--skip-tasks` skips too, so it takes two calls: the
+[CLI template's README](https://github.com/GrndZero101/python-template-cli-typer#path-a--start-a-new-project-from-this-template)
+gives them.
 
 That is the whole setup. Generation already ran `git init -b main`, `uv sync`, the initial commit,
 and all three `prek` shims. Verify and start work:
@@ -200,25 +202,13 @@ finds no module to build.
 
 **Documents already in the repo are not checked on the way in.** Generation's first commit takes
 whatever the directory holds before the shims exist, so the first `finish_branch.py` is the first
-gate they meet, and markdown written to other rules fails it. `rumdl fmt` fixes most of it, but under
-the shipped settings it only reports lines over 100 characters (MD013), and nothing rewrites a
-bold line used as a heading (MD036): change those to headings by hand. For the long lines, reflow
-once with a config kept outside the repo, on the first branch:
-
-```toml
-# reflow.toml
-[global]
-line-length = 100
-
-[MD013]
-line-length = 100
-code-blocks = false
-tables = false
-reflow = true
-```
+gate they meet, and markdown written to other rules fails it. `rumdl fmt` fixes most of it, long
+lines included: the shipped settings rewrap a paragraph that holds a line over 100 characters
+(MD013). Nothing rewrites a bold line used as a heading (MD036): change those to headings by hand.
+To fix the rest in one go on the first branch, rather than as each file is next touched:
 
 ```bash
-uv run --no-project --with rumdl rumdl fmt --config ../reflow.toml docs/
+prek run rumdl-fmt --all-files
 ```
 
 **Permissions of the project's own** — a front end's package manager, `docker compose` — go in
