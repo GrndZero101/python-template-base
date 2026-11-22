@@ -363,7 +363,9 @@ See [CLAUDE.md](CLAUDE.md) for why, and for the branching and merge rules.
 - **`bootstrap.sh`, `bootstrap.py`** — the setup helper: a POSIX `sh` shim that makes sure of
   a standalone `uv` and updates it, then a uv script with the commands. Tested in `tests/`.
 - **`.pre-commit-config.yaml`** — the gate for this repository.
-- **`TODO.md`** — outstanding work.
+- **`.plan/`** — outstanding work on this repo, the CLI template and the canary, tracked with
+  the author's `tp`; decisions are ADRs under `.plan/docs/`.
+- **`TODO.md`** — `tp`'s board of that work, generated.
 
 ## License
 

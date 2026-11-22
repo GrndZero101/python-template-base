@@ -22,7 +22,8 @@
       "PowerShell(prek *)",
       "PowerShell(copier *)",
       "mcp__context7__query-docs",
-      "mcp__context7__resolve-library-id"
+      "mcp__context7__resolve-library-id",
+      "Bash(tp *)"
     ]
   },
   "hooks": {
@@ -42,6 +43,18 @@
               "template/tools/session_doctor.py"
             ],
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tp",
+            "args": [
+              "hook",
+              "session-start"
+            ]
           }
         ]
       }
@@ -122,5 +135,9 @@
   },
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": true
+  },
+  "env": {
+    "TP_JSON": "1",
+    "TP_ACTOR": "claude"
   }
 }

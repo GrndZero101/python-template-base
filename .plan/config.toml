@@ -1,0 +1,17 @@
+prefix = "T"
+milestone_prefix = "M"
+# Docs are numbered from D-0001, so the old decision log's D1 to D17 keep their numbers (D-0012 is
+# D12, which tests and copier.yml cite), and the ADRs after them carry on from D-0018.
+doc_prefix = "D"
+verify_timeout = 900
+# "bash" is right on Linux, macOS and WSL, and from Claude Code's Bash tool on Windows (Git Bash).
+# From PowerShell, `bash` on PATH is WSL's, so on Windows native set the user variable
+# TP_VERIFY_SHELL to Git Bash's C:\Program Files\Git\bin\bash.exe. See CLAUDE.md > Task tracking.
+verify_shell = "bash"
+require_verify = true
+allow_skip_verify = true
+# The tp board, regenerated on every write; the root gate leaves it alone.
+board_file = "TODO.md"
+board_notes = "none"
+# The root has its own Stop gate, and tp's Stop hook is not registered: work here is interactive.
+max_stop_blocks = 0
