@@ -327,7 +327,16 @@ it finds is fixed here first.
 
 **Every checkpoint ends with the command that starts the next session**, prompt included, ready
 to paste (2026-10-18). `claude "<prompt>"` runs the prompt as the first turn and stays
-interactive; `claude -p` would exit after it. For a step in both template repos:
+interactive; `claude -p` would exit after it. Give it in the form for the host the author is
+working on (since 2026-11-23, Windows native; before that, WSL). For a step in both template
+repos, on Windows in PowerShell:
+
+```powershell
+cd C:\shares\projects\github\GrndZero101\python-template-base
+claude "<prompt naming the step in TODO.md>" --add-dir ..\python-template-cli-typer
+```
+
+On Linux, macOS or WSL:
 
 ```bash
 cd ~/projects/github/GrndZero101/python-template-base && \
