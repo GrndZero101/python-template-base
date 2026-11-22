@@ -101,7 +101,37 @@ markdown was rewrapped, and no file came out CRLF. Then `finish_branch.py` gated
 merged. The canary had **no git shims** at the session's start (the SessionStart doctor said so).
 `prek install` with all three fixed it before the update, so its commits were gated.
 
-**Next: the CLI suite on `pytest-xdist`** (asked for by the author on 2026-11-23, for local loops
+**Next: move this file's work into taskplan (`tp`)** (chosen by the author on 2026-11-23). `tp` is
+the author's own agent-first tracker (v0.1.0, `uv tool`), in use in tboss-svc-pki since the same
+day: tasks with `--dep`, `--verify` and `blocked` reasons, docs and ADRs under `.plan/docs/`, a
+`session-start` brief and an exported board. This file is 1,220 lines with about six open
+checkboxes, and a fresh session reads all of it to find one step. Read `tp --help` and each
+subcommand's first. This is a restructuring by judgment, not a `tp import markdown`: the hand-off
+here is prose, and the importer reads only headings and checkboxes. The plan:
+
+- **One store, in this repo's root, for all three repos.** Tasks tagged `base`, `cli` or `canary`.
+  A session in the canary or the CLI repo reaches it with `TP_ROOT` or `--root`. The CLI repo's
+  6-line `TODO.md` (a field-findings inbox, empty now) becomes a pointer to it.
+- **Split this file by kind.** Open work becomes tasks under milestones, the first live one the
+  xdist step below, and "waiting for the web app" items become `blocked` with that reason. The
+  decision log (D1 on) becomes ADRs via `tp doc`. The standing rules ("How work is judged",
+  "Sessions and checkpoints", "How work runs") move to the root `CLAUDE.md`, since they are
+  instructions. Finished history goes, since git and the merge commits hold it. Keep anything
+  still cited as a gotcha. `TODO.md` becomes `tp export`'s generated board, as in tboss-svc-pki.
+- **Hooks at the root only.** Register `tp hook session-start` in the root `.claude/settings.json`,
+  exec form like the others. Leave tp's Stop hook off (`max_stop_blocks = 0`, as tboss-svc-pki
+  did): the root has a Stop gate already.
+- **Settle the verify shell first.** From PowerShell, `bash` on PATH is WSL's, so `tp verify` and
+  `tp done` run there unless `TP_VERIFY_SHELL` names Git Bash (tboss-svc-pki's memory). Prove one
+  `--verify` command runs from both Claude's Bash tool and PowerShell before writing many.
+- **Reword what names `TODO.md`**: the root `CLAUDE.md`'s "Sessions" section, the checkpoint
+  procedure, and the CLI repo's `CLAUDE.md` where it mentions field reports.
+- **Not in scope:** shipping `tp` in the template to generated projects. Decide that only once it
+  has proved itself here.
+
+Record the move as the first ADR. Findings about `tp` itself go to its own repo, not here.
+
+**Then: the CLI suite on `pytest-xdist`** (asked for by the author on 2026-11-23, for local loops
 on many-core workstations). The CLI repo's suite took about 9 minutes for 48 tests on Windows,
 nearly all of it waiting on `uv sync`, `prek` and `git` in per-test tmp dirs, so it should spread
 across cores. Add `pytest-xdist` to the CLI repo's dev group (`uv add --dev`) and `-n auto` to its
