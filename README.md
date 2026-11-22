@@ -125,7 +125,9 @@ prek install -t pre-commit -t commit-msg -t pre-merge-commit
 ```
 
 This covers the base alone. A use case applies the base through a task of its own, which
-`--skip-tasks` skips too.
+`--skip-tasks` skips too, so it takes two calls: the
+[CLI template's README](https://github.com/GrndZero101/python-template-cli-typer#path-a--start-a-new-project-from-this-template)
+gives them.
 
 That is the whole setup. Generation already ran `git init -b main`, `uv sync`, the initial commit,
 and all three `prek` shims. Verify and start work:
