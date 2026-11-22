@@ -68,7 +68,7 @@ added MD076** (a list whose items hold blank lines separates every item with one
 every generated project's gate; the base is fixed (`4aa28b7`).
 
 **The CLI repo's share of #1 is done** (2026-11-23, branch `fix/issue-1-cli-share` in both
-repos, merged locally, **not pushed**):
+repos, merged as `15f767a` here and `0d61a6b` there):
 
 1. MD076 in the CLI repo: `rumdl fmt` fixed all 13 issues (`0eb84d0` there).
 2. Finding 21: `-q` dropped from `addopts` in both templates (`dbb5be8`, `8e6aa37` there).
@@ -85,12 +85,14 @@ repos, merged locally, **not pushed**):
    base's own `--skip-tasks` recipe has none either, and a new task in either `copier.yml` is the
    drift to watch for.
 
-**Next: push and close #1.** Push the base's `main` first (it holds this and the earlier #1
-work), then the CLI's, and check both CI runs: the CLI's CI checks out the base's `main`, so it
-is red until the base is pushed. Then close #1 with a comment listing the commits above and the
-base side's. Then a `copier update` of the canary, since generated projects changed. Not acted
-on, waiting for the web app to show them: a second test suite (the gate and `finish_branch.py`
-run one `pytest`), and `PLR0913` against FastAPI handlers with several dependencies.
+**#1 is pushed and closed** (2026-11-23): base `main` at `002b8b1`, the CLI's at `0d61a6b`, both
+CI runs green on Linux and macOS, and #1 closed with a comment listing every commit. Not acted on,
+waiting for the web app to show them: a second test suite (the gate and `finish_branch.py` run one
+`pytest`), and `PLR0913` against FastAPI handlers with several dependencies.
+
+**Next: a `copier update` of the canary**, since generated projects changed: MD076 and reflow
+rewrap its markdown, and `addopts` loses `-q`. A session started in the canary, base first, as
+"Next up" step 4 below did, through the setup helper.
 
 **Then: the CLI suite on `pytest-xdist`** (asked for by the author on 2026-11-23, for local loops
 on many-core workstations). The CLI repo's suite took about 9 minutes for 48 tests on Windows,
