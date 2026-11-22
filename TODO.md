@@ -67,27 +67,30 @@ since uv_build fails `uv sync` with no package. Working on it also showed that *
 added MD076** (a list whose items hold blank lines separates every item with one), which failed
 every generated project's gate; the base is fixed (`4aa28b7`).
 
-**Next: the CLI repo's share, one session with `--add-dir ../python-template-cli-typer`.** In
-order:
+**The CLI repo's share of #1 is done** (2026-11-23, branch `fix/issue-1-cli-share` in both
+repos, merged locally, **not pushed**):
 
-1. **MD076 in the CLI repo, urgent**: `rumdl check` finds 13 issues in 4 of its markdown files,
-   `python-cli-typer/SKILL.md` among them, so its generated projects fail their gate and its CI
-   is red. `rumdl fmt` fixes them all.
-2. **Finding 21**: drop `-q` from `addopts` in both templates' `pyproject.toml`.
-3. **rumdl `reflow = true`** under `[tool.rumdl.MD013]`, in both templates' `pyproject.toml`, so
-   the gate's `rumdl fmt` wraps long lines instead of only reporting them (#1, point 2). Tried in
-   a scratch copy: with `reflow-mode` left at `default` it rewraps no shipped file, only the
-   paragraphs of the root `CLAUDE.md` that hold a line past 100, which `rumdl check` passes
-   because the overflow is one word. It would then also wrap whatever an agent writes, at every
-   save. Decide, and if yes, set it in the root's `pyproject.toml` too and drop the README's
-   one-off reflow config.
-4. **A use case without `--trust`** (#1, point 1): the CLI template applies the base through a
-   task, which `--skip-tasks` skips. Work out and test the two-call form, and document it in the
-   CLI README beside the base's.
+1. MD076 in the CLI repo: `rumdl fmt` fixed all 13 issues (`0eb84d0` there).
+2. Finding 21: `-q` dropped from `addopts` in both templates (`dbb5be8`, `8e6aa37` there).
+3. rumdl `reflow = true`, decided yes by the author: in both templates and both roots, each root's
+   markdown rewrapped, and the README's one-off reflow recipe replaced by
+   `prek run rumdl-fmt --all-files` (`5206abc`, `7ad1c22` there). The scratch-copy trial above had
+   tried the base alone: under the CLI layer, reflow rewraps four shipped files that `rumdl check`
+   passes (one word or link over 100), so those are wrapped in the CLI template too, or every
+   generated project's gate would rewrite them.
+4. A use case without `--trust`: two `--skip-tasks` calls, the CLI template then the base into
+   `.`, then the base's tasks by hand. Tried against both local templates, it made the same tree,
+   lockfile, answers files and first commit as the one-call form. Documented in the CLI README's
+   Path A (`b491563` there), linked from the base README's (`d5c2293`). No automated test: the
+   base's own `--skip-tasks` recipe has none either, and a new task in either `copier.yml` is the
+   drift to watch for.
 
-Then close #1 with a comment listing the commits. Not acted on, waiting for the web app to show
-them: a second test suite (the gate and `finish_branch.py` run one `pytest`), and `PLR0913`
-against FastAPI handlers with several dependencies.
+**Next: push and close #1.** Push the base's `main` first (it holds this and the earlier #1
+work), then the CLI's, and check both CI runs: the CLI's CI checks out the base's `main`, so it
+is red until the base is pushed. Then close #1 with a comment listing the commits above and the
+base side's. Then a `copier update` of the canary, since generated projects changed. Not acted
+on, waiting for the web app to show them: a second test suite (the gate and `finish_branch.py`
+run one `pytest`), and `PLR0913` against FastAPI handlers with several dependencies.
 
 Still candidates after it, ask first: phase 10's "Later in the phase" (`python-canary-base` to
 exercise the uv-script skill, and `python-template-cli-stdlib` seeded from `archive/cli-stdlib`)
