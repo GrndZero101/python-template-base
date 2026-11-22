@@ -1,5 +1,7 @@
 # This file records the answers given when the base layer was applied to this project.
-# `copier update -a .copier-answers.base.yml` reads it to re-apply base changes. Do not delete it,
-# and do not edit it by hand — copier overwrites it on every update. The use case's answers are in
-# .copier-answers.yml, which a plain `copier update` reads.
+# `copier update --trust -a .copier-answers.base.yml` reads it to re-apply base changes; add
+# `--defaults` to keep these answers without being asked, which a shell that is not a real console
+# (an agent's, or Git Bash on Windows) needs. Do not delete it, and do not edit it by hand — copier
+# overwrites it on every update. The use case's answers are in .copier-answers.yml, which a plain
+# `copier update --trust` reads.
 {{ dict(_copier_answers, copyright_year=copyright_year) | to_nice_yaml -}}
